@@ -9,6 +9,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 from tqdm import tqdm
 from torchvision import transforms
+from src.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, LabelType
+
 
 
 object_categories = ['aeroplane', 'bicycle', 'bird', 'boat',
@@ -413,26 +415,29 @@ class VOC2012(Dataset):
         return len(self.classes)
 
 
-def get_voc_dataset():
+@register_dataset("voc", LabelType.MULTI_LABEL)
+def get_voc_dataset(n_class,*args):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     dataset = VOC2012("./data/voc2012", phase="trainval", transform=transform)
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset,
-                                                                [10000, len(dataset) - 10000],
+    n_class = dataset.get_number_classes()
+    train_dataset,valid_dataset, test_dataset = torch.utils.data.random_split(dataset,
+                                                                [10000, (len(dataset) - 10000)//2,(len(dataset) - 10000)//2],
                                                                 generator=torch.Generator().manual_seed(42))
-    return train_dataset, test_dataset
+    return train_dataset, valid_dataset, test_dataset, None, None, None,n_class
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
-    train, test = get_voc_dataset()
-    print(len(train), len(test))
-    loader = DataLoader(test, batch_size=100)
+    train, val, test, _, _, _, n_class = get_voc_dataset(None)
+    print(len(train), len(test),n_class)
+    loader = DataLoader(test, batch_size=2)
     img, target = next(iter(loader))
     print(img.size())
     print(torch.sum(target))
     print(target.size())
-    print(train.get_number_classes())
+    print(n_class)
+    print(target)
