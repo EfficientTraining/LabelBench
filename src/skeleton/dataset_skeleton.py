@@ -94,7 +94,7 @@ class ALDataset:
         self.train_emb = None
         self.val_emb = None
         self.test_emb = None
-        self.labeled_idxs = None
+        self.__labeled_idxs = None
         self.train_labels = get_labels(train_dataset) if train_labels is None else train_labels
         self.val_labels = get_labels(val_dataset) if val_labels is None else val_labels
         self.test_labels = get_labels(train_dataset) if test_labels is None else test_labels
@@ -118,10 +118,10 @@ class ALDataset:
 
         :param List new_idxs: list of newly labeled indexes.
         """
-        if self.labeled_idxs is None:
-            self.labeled_idxs = np.array(new_idxs)
+        if self.__labeled_idxs is None:
+            self.__labeled_idxs = np.array(new_idxs)
         else:
-            self.labeled_idxs = np.concatenate((self.labeled_idxs, np.array(new_idxs)))
+            self.__labeled_idxs = np.concatenate((self.__labeled_idxs, np.array(new_idxs)))
 
     def get_embedding_datasets(self):
         """
@@ -142,4 +142,13 @@ class ALDataset:
         return self.train_dataset, self.val_dataset, self.test_dataset
 
     def __len__(self):
+        """Length of the training set."""
         return len(self.train_dataset)
+
+    def num_labeled(self):
+        """Number of labeled examples in the pool."""
+        return len(self.__labeled_idxs)
+
+    def labeled_idxs(self):
+        """Indexes of the labeled examples in chronological order."""
+        return np.array(self.__labeled_idxs)

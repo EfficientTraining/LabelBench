@@ -7,7 +7,7 @@ from torchvision.datasets import CIFAR10
 from src.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, LabelType
 
 
-@register_dataset("cifar10_imb", LabelType.MULTI_LABEL)
+@register_dataset("cifar10_imb", LabelType.MULTI_CLASS)
 def get_cifar10_imb_dataset(n_class, *args):
     transform = transforms.Compose([
         transforms.ToPILImage(),

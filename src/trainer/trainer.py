@@ -7,8 +7,8 @@ import src.trainer.trainer_impl
 from src.skeleton.trainer_skeleton import trainers
 
 
-def get_trainer(name):
-    return trainers[name]
+def get_trainer(name, trainer_config, dataset, model_fn, model_config, metric):
+    return trainers[name](trainer_config, dataset, model_fn, model_config, metric)
 
 
 def get_fns(trainer_config):
@@ -29,14 +29,20 @@ def get_fns(trainer_config):
     return trainer_config
 
 
-def get_optimizer(optim_name, lr, weight_decay=0, betas=None, momentum=0, nesterov=False):
-    if optim_name == "Adam":
-        if betas is None:
-            optim = lambda params: Adam(params, lr=lr, weight_decay=weight_decay)
+def get_optimizer_fn(trainer_config):
+    wd = trainer_config["wd"] if "wd" in trainer_config else 0
+    if trainer_config["optim_name"] == "Adam":
+        if "betas" not in trainer_config:
+            optim_fn = lambda params: Adam(params, lr=trainer_config["lr"], weight_decay=wd)
         else:
-            optim = lambda params: Adam(params, lr=lr, betas=betas, weight_decay=weight_decay)
-    elif optim_name == "SGD":
-        optim = lambda params: SGD(params, lr=lr, weight_decay=weight_decay, nesterov=nesterov, momentum=momentum)
+            optim_fn = lambda params: Adam(params, lr=trainer_config["lr"], betas=tuple(trainer_config["betas"]),
+                                        weight_decay=wd)
+    elif trainer_config["optim_name"] == "SGD":
+        nesterov = trainer_config["nesterov"] if "nesterov" in trainer_config else False
+        momentum = trainer_config["momentum"] if "momentum" in trainer_config else 0
+        optim_fn = lambda params: SGD(params, lr=trainer_config["lr"], weight_decay=wd, nesterov=nesterov,
+                                   momentum=momentum)
     else:
-        raise ValueError("%s optimizer is unknown" % optim_name)
-    return optim
+        raise ValueError("%s optimizer is unknown" % trainer_config["optim_name"])
+    trainer_config["optim_fn"] = optim_fn
+    return trainer_config
