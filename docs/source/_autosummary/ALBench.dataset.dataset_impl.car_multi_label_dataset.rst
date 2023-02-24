@@ -1,0 +1,43 @@
+﻿ALBench.dataset.dataset\_impl.car\_multi\_label\_dataset
+========================================================
+
+.. automodule:: ALBench.dataset.dataset_impl.car_multi_label_dataset
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      get_car_multi_label_dataset
+      getting_data
+      getting_metadata
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      CarDataset
+      MetaParsing
+   
+   
+
+   
+   
+   
+
+
+

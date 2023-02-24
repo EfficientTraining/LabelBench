@@ -1,0 +1,38 @@
+ALBench.skeleton.dataset\_skeleton
+==================================
+
+.. automodule:: ALBench.skeleton.dataset_skeleton
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_labels
+      register_dataset
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ALDataset
+      DatasetOnMemory
+      LabelType
+   
+   
+
+   
+   
+   
+
+
+

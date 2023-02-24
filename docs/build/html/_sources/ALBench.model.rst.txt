@@ -1,0 +1,29 @@
+ALBench.model package
+=====================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ALBench.model.model_impl
+
+Submodules
+----------
+
+ALBench.model.model module
+--------------------------
+
+.. automodule:: ALBench.model.model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.model
+   :members:
+   :undoc-members:
+   :show-inheritance:

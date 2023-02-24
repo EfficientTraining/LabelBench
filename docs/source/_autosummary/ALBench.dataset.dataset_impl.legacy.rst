@@ -1,0 +1,36 @@
+ALBench.dataset.dataset\_impl.legacy
+====================================
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   ALBench.dataset.dataset_impl.legacy.cifar100_imb_dataset
+   ALBench.dataset.dataset_impl.legacy.coco_dataset
+   ALBench.dataset.dataset_impl.legacy.kuzushiji_dataset
+   ALBench.dataset.dataset_impl.legacy.svhn_imb_dataset
+   ALBench.dataset.dataset_impl.legacy.voc_dataset
+

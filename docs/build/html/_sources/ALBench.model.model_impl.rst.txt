@@ -1,0 +1,37 @@
+ALBench.model.model\_impl package
+=================================
+
+Submodules
+----------
+
+ALBench.model.model\_impl.clip module
+-------------------------------------
+
+.. automodule:: ALBench.model.model_impl.clip
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.model.model\_impl.resnet18 module
+-----------------------------------------
+
+.. automodule:: ALBench.model.model_impl.resnet18
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.model.model\_impl.resnet50 module
+-----------------------------------------
+
+.. automodule:: ALBench.model.model_impl.resnet50
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.model.model_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

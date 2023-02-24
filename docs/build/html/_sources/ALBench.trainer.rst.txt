@@ -1,0 +1,29 @@
+ALBench.trainer package
+=======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ALBench.trainer.trainer_impl
+
+Submodules
+----------
+
+ALBench.trainer.trainer module
+------------------------------
+
+.. automodule:: ALBench.trainer.trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:

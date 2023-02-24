@@ -1,0 +1,21 @@
+ALBench.trainer.trainer\_impl package
+=====================================
+
+Submodules
+----------
+
+ALBench.trainer.trainer\_impl.passive\_trainer module
+-----------------------------------------------------
+
+.. automodule:: ALBench.trainer.trainer_impl.passive_trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.trainer.trainer_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

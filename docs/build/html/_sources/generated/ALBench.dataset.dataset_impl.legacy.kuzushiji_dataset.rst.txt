@@ -1,0 +1,35 @@
+ALBench.dataset.dataset\_impl.legacy.kuzushiji\_dataset
+=======================================================
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy.kuzushiji_dataset
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_kuzushiji49_dataset
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Kuzushiji49
+   
+   
+
+   
+   
+   
+
+
+

@@ -1,0 +1,53 @@
+ALBench.dataset.dataset\_impl.legacy package
+============================================
+
+Submodules
+----------
+
+ALBench.dataset.dataset\_impl.legacy.cifar100\_imb\_dataset module
+------------------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy.cifar100_imb_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.legacy.coco\_dataset module
+---------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy.coco_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.legacy.kuzushiji\_dataset module
+--------------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy.kuzushiji_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.legacy.svhn\_imb\_dataset module
+--------------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy.svhn_imb_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.legacy.voc\_dataset module
+--------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy.voc_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.dataset.dataset_impl.legacy
+   :members:
+   :undoc-members:
+   :show-inheritance:

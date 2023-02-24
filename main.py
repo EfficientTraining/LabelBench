@@ -5,11 +5,11 @@ import numpy as np
 import json
 import os
 
-from src.dataset.datasets import get_dataset
-from src.model.model import get_model_fn
-from src.metric.metrics import get_metric
-from src.trainer.trainer import get_trainer, get_fns, get_optimizer_fn
-from src.strategy.strategies import get_strategy
+from ALBench.dataset.datasets import get_dataset
+from ALBench.model.model import get_model_fn
+from ALBench.metric.metrics import get_metric
+from ALBench.trainer.trainer import get_trainer, get_fns, get_optimizer_fn
+from ALBench.strategy.strategies import get_strategy
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

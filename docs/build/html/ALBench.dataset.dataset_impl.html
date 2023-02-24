@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>ALBench.dataset.dataset_impl package &#8212; ALBench 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ALBench.dataset.dataset_impl.legacy package" href="ALBench.dataset.dataset_impl.legacy.html" />
+    <link rel="prev" title="ALBench.dataset package" href="ALBench.dataset.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="albench-dataset-dataset-impl-package">
+<h1>ALBench.dataset.dataset_impl package<a class="headerlink" href="#albench-dataset-dataset-impl-package" title="Permalink to this headline">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html">ALBench.dataset.dataset_impl.legacy package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#module-ALBench.dataset.dataset_impl.legacy.cifar100_imb_dataset">ALBench.dataset.dataset_impl.legacy.cifar100_imb_dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#module-ALBench.dataset.dataset_impl.legacy.coco_dataset">ALBench.dataset.dataset_impl.legacy.coco_dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#module-ALBench.dataset.dataset_impl.legacy.kuzushiji_dataset">ALBench.dataset.dataset_impl.legacy.kuzushiji_dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#module-ALBench.dataset.dataset_impl.legacy.svhn_imb_dataset">ALBench.dataset.dataset_impl.legacy.svhn_imb_dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#module-ALBench.dataset.dataset_impl.legacy.voc_dataset">ALBench.dataset.dataset_impl.legacy.voc_dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html#module-ALBench.dataset.dataset_impl.legacy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-ALBench.dataset.dataset_impl.caltech256_dataset">
+<span id="albench-dataset-dataset-impl-caltech256-dataset-module"></span><h2>ALBench.dataset.dataset_impl.caltech256_dataset module<a class="headerlink" href="#module-ALBench.dataset.dataset_impl.caltech256_dataset" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.caltech256_dataset.Caltech256">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.caltech256_dataset.</span></span><span class="sig-name descname"><span class="pre">Caltech256</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">download</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.caltech256_dataset.Caltech256" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<p><a class="reference external" href="https://data.caltech.edu/records/20087">Caltech 256</a> Dataset.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>root (string): Root directory of dataset where directory</dt><dd><p><code class="docutils literal notranslate"><span class="pre">caltech256</span></code> exists or will be saved to if download is set to True.</p>
+</dd>
+<dt>transform (callable, optional): A function/transform that takes in an PIL image</dt><dd><p>and returns a transformed version. E.g, <code class="docutils literal notranslate"><span class="pre">transforms.RandomCrop</span></code></p>
+</dd>
+<dt>target_transform (callable, optional): A function/transform that takes in the</dt><dd><p>target and transforms it.</p>
+</dd>
+<dt>download (bool, optional): If true, downloads the dataset from the internet and</dt><dd><p>puts it in root directory. If dataset is already downloaded, it is not
+downloaded again.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.caltech256_dataset.Caltech256.download">
+<span class="sig-name descname"><span class="pre">download</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#ALBench.dataset.dataset_impl.caltech256_dataset.Caltech256.download" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.caltech256_dataset.get_caltech256_dataset">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.caltech256_dataset.</span></span><span class="sig-name descname"><span class="pre">get_caltech256_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.caltech256_dataset.get_caltech256_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.caltech256_dataset.pil_loader">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.caltech256_dataset.</span></span><span class="sig-name descname"><span class="pre">pil_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.caltech256_dataset.pil_loader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-ALBench.dataset.dataset_impl.car_multi_label_dataset">
+<span id="albench-dataset-dataset-impl-car-multi-label-dataset-module"></span><h2>ALBench.dataset.dataset_impl.car_multi_label_dataset module<a class="headerlink" href="#module-ALBench.dataset.dataset_impl.car_multi_label_dataset" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.car_multi_label_dataset.CarDataset">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.car_multi_label_dataset.</span></span><span class="sig-name descname"><span class="pre">CarDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.car_multi_label_dataset.CarDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.car_multi_label_dataset.MetaParsing">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.car_multi_label_dataset.</span></span><span class="sig-name descname"><span class="pre">MetaParsing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.car_multi_label_dataset.MetaParsing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for parsing image and meta-data for the Stanford car dataset to create a custom dataset.
+path: The filepah to the metadata in .mat format.
+<a href="#id1"><span class="problematic" id="id2">*</span></a>args: Accepts dictionaries with self-created labels which will be extracted from the metadata (e.g. {0: “Audi”, 1: “BMW”, 3: “Other”).
+year: Can be defined to create two classes (&lt;=year and later).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.car_multi_label_dataset.MetaParsing.parsing">
+<span class="sig-name descname"><span class="pre">parsing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.car_multi_label_dataset.MetaParsing.parsing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.car_multi_label_dataset.get_car_multi_label_dataset">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.car_multi_label_dataset.</span></span><span class="sig-name descname"><span class="pre">get_car_multi_label_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.car_multi_label_dataset.get_car_multi_label_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.car_multi_label_dataset.getting_data">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.car_multi_label_dataset.</span></span><span class="sig-name descname"><span class="pre">getting_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.car_multi_label_dataset.getting_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.car_multi_label_dataset.getting_metadata">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.car_multi_label_dataset.</span></span><span class="sig-name descname"><span class="pre">getting_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.car_multi_label_dataset.getting_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloading a metadata file from a specific url and save it to the disc.</p>
+</dd></dl>
+
+</section>
+<section id="module-ALBench.dataset.dataset_impl.celeba_dataset">
+<span id="albench-dataset-dataset-impl-celeba-dataset-module"></span><h2>ALBench.dataset.dataset_impl.celeba_dataset module<a class="headerlink" href="#module-ALBench.dataset.dataset_impl.celeba_dataset" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.celeba_dataset.get_celeb_dataset">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.celeba_dataset.</span></span><span class="sig-name descname"><span class="pre">get_celeb_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.celeba_dataset.get_celeb_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-ALBench.dataset.dataset_impl.cifar10_imb_dataset">
+<span id="albench-dataset-dataset-impl-cifar10-imb-dataset-module"></span><h2>ALBench.dataset.dataset_impl.cifar10_imb_dataset module<a class="headerlink" href="#module-ALBench.dataset.dataset_impl.cifar10_imb_dataset" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="ALBench.dataset.dataset_impl.cifar10_imb_dataset.get_cifar10_imb_dataset">
+<span class="sig-prename descclassname"><span class="pre">ALBench.dataset.dataset_impl.cifar10_imb_dataset.</span></span><span class="sig-name descname"><span class="pre">get_cifar10_imb_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_class</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ALBench.dataset.dataset_impl.cifar10_imb_dataset.get_cifar10_imb_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-ALBench.dataset.dataset_impl">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ALBench.dataset.dataset_impl" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ALBench</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="ALBench.html">ALBench package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ALBench.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="ALBench.dataset.html">ALBench.dataset package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="ALBench.dataset.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">ALBench.dataset.dataset_impl package</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="ALBench.dataset.dataset_impl.legacy.html">ALBench.dataset.dataset_impl.legacy package</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#module-ALBench.dataset.dataset_impl.caltech256_dataset">ALBench.dataset.dataset_impl.caltech256_dataset module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#module-ALBench.dataset.dataset_impl.car_multi_label_dataset">ALBench.dataset.dataset_impl.car_multi_label_dataset module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#module-ALBench.dataset.dataset_impl.celeba_dataset">ALBench.dataset.dataset_impl.celeba_dataset module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#module-ALBench.dataset.dataset_impl.cifar10_imb_dataset">ALBench.dataset.dataset_impl.cifar10_imb_dataset module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#module-ALBench.dataset.dataset_impl">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ALBench.dataset.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ALBench.dataset.html#module-ALBench.dataset.datasets">ALBench.dataset.datasets module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ALBench.dataset.html#module-ALBench.dataset">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ALBench.metric.html">ALBench.metric package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ALBench.model.html">ALBench.model package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/ALBench.html">ALBench</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ALBench.strategy.html">ALBench.strategy package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ALBench.trainer.html">ALBench.trainer package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ALBench.html#module-ALBench">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="ALBench.html">ALBench package</a><ul>
+  <li><a href="ALBench.dataset.html">ALBench.dataset package</a><ul>
+      <li>Previous: <a href="ALBench.dataset.html" title="previous chapter">ALBench.dataset package</a></li>
+      <li>Next: <a href="ALBench.dataset.dataset_impl.legacy.html" title="next chapter">ALBench.dataset.dataset_impl.legacy package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Jifan Zhang, Yifang Chen.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/ALBench.dataset.dataset_impl.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

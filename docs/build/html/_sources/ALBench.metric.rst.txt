@@ -1,0 +1,29 @@
+ALBench.metric package
+======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ALBench.metric.metric_impl
+
+Submodules
+----------
+
+ALBench.metric.metrics module
+-----------------------------
+
+.. automodule:: ALBench.metric.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.metric
+   :members:
+   :undoc-members:
+   :show-inheritance:
