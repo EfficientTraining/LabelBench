@@ -110,7 +110,7 @@ class Caltech256(VisionDataset):
 
 
 @register_dataset("caltech256", LabelType.MULTI_CLASS)
-def get_caltech256_dataset(*args):
+def get_caltech256_dataset(data_dir, *args):
     transform = transforms.Compose([
         transforms.Resize(size=256),
         transforms.CenterCrop(size=224),
@@ -120,7 +120,7 @@ def get_caltech256_dataset(*args):
     ])
     target_transform = transforms.Compose(
         [lambda x: torch.LongTensor([x]) % 256, lambda x: torch.flatten(F.one_hot(x, 256))])
-    dataset = Caltech256(root="./data", transform=transform, target_transform=target_transform, download=True)
+    dataset = Caltech256(root=data_dir, transform=transform, target_transform=target_transform, download=True)
     rnd = np.random.RandomState(42)
     idxs = rnd.permutation(len(dataset))
     train_idxs, val_idxs, test_idxs = idxs[:len(dataset) - len(dataset) // 5], \

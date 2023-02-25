@@ -36,12 +36,12 @@ class MetaParsing:
     year: Can be defined to create two classes (<=year and later).
     """
 
-    def __init__(self):
-        if not os.path.exists("./data/carimages"):
-            getting_data("http://ai.stanford.edu/~jkrause/car196/car_ims.tgz", "./data/carimages")
-        if not os.path.exists("./data/car_metadata.mat"):
-            getting_metadata("http://ai.stanford.edu/~jkrause/car196/cars_annos.mat", "./data/car_metadata.mat")
-        self.mat = loadmat("./data/car_metadata.mat")
+    def __init__(self, data_dir):
+        if not os.path.exists(os.path.join(data_dir, "carimages")):
+            getting_data("http://ai.stanford.edu/~jkrause/car196/car_ims.tgz", os.path.join(data_dir, "carimages"))
+        if not os.path.exists(os.path.join(data_dir, "car_metadata.mat")):
+            getting_metadata("http://ai.stanford.edu/~jkrause/car196/cars_annos.mat", os.path.join(data_dir, "car_metadata.mat"))
+        self.mat = loadmat(os.path.join(data_dir, "car_metadata.mat"))
         self.year = 2009
         self.annotations = np.transpose(self.mat["annotations"])
         # Extracting the file name for each sample
@@ -67,16 +67,17 @@ class MetaParsing:
 
 
 class CarDataset(Dataset):
-    def __init__(self, transform):
-        self.labels, self.file_names = MetaParsing().parsing()
+    def __init__(self, transform, data_dir):
+        self.labels, self.file_names = MetaParsing(data_dir).parsing()
         assert len(self.labels) == len(self.file_names)
         self.transform = transform
+        self.data_dir = data_dir
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        img_loc = os.path.join("./data/carimages/car_ims", self.file_names[idx])
+        img_loc = os.path.join(os.path.join(self.data_dir, "carimages/car_ims"), self.file_names[idx])
         image = Image.open(img_loc).convert('RGB')
         single_img = self.transform(image)
 
@@ -84,7 +85,7 @@ class CarDataset(Dataset):
 
 
 @register_dataset("car_multi_label", LabelType.MULTI_LABEL)
-def get_car_multi_label_dataset(*args):
+def get_car_multi_label_dataset(data_dir, *args):
     dataset = CarDataset(transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),

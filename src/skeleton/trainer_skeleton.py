@@ -1,3 +1,5 @@
+import numpy as np
+
 # All trainers.
 trainers = {}
 
@@ -18,14 +20,16 @@ class Trainer:
         self.trainer_config = trainer_config
         self.dataset = dataset
         self.model_fn = model_fn
+        self.model_config = model_config
         self.metric = metric
+        self._eval_results = [None for _ in range(12)]
 
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
         super().__init_subclass__(**kwargs)
         trainers[cls.trainer_name] = cls
 
-    def train(self, log=False, finetune_model=None, finetune_config=None):
+    def train(self, finetune_model=None, finetune_config=None):
         """
         Train a model.
 
@@ -33,4 +37,34 @@ class Trainer:
         :param Optional[torch.nn.Module] finetune_model: Warm start model if indicated.
         :param Optional[Dict] finetune_config: Warm start model hyper-parameters.
         """
-        pass
+        raise NotImplementedError("Subclass does not have implementation of training function.")
+
+    def evaluate_on_train(self, model, mc_dropout=False):
+        train_dataset, _, _ = self.dataset.get_input_datasets()
+        self._eval_results[0], self._eval_results[3], self._eval_results[6], self._eval_results[9] = \
+            self._test(train_dataset, model, mc_dropout=mc_dropout)
+
+    def evaluate_on_val(self, model, mc_dropout=False):
+        _, val_dataset, _ = self.dataset.get_input_datasets()
+        self._eval_results[1], self._eval_results[4], self._eval_results[7], self._eval_results[10] = \
+            self._test(val_dataset, model, mc_dropout=mc_dropout)
+
+    def evaluate_on_test(self, model, mc_dropout=False):
+        _, _, test_dataset = self.dataset.get_input_datasets()
+        self._eval_results[2], self._eval_results[5], self._eval_results[8], self._eval_results[11] = \
+            self._test(test_dataset, model, mc_dropout=mc_dropout)
+
+    def retrieve_inputs(self, input_types):
+        inputs = [np.array(self._eval_results[int(t)]) for t in input_types]
+        return inputs
+
+    def compute_metric(self, epoch):
+        metric_dict = self.metric.compute(epoch, self._eval_results[0], self._eval_results[3], self._eval_results[6],
+                                          self._eval_results[1], self._eval_results[4], self._eval_results[7],
+                                          self._eval_results[2], self._eval_results[5], self._eval_results[8],
+                                          num_labeled=self.dataset.num_labeled(),
+                                          labeled=self.dataset.labeled_idxs())
+        return metric_dict
+
+    def _test(self, dataset, model, **kwargs):
+        raise NotImplementedError("Subclass does not have implementation of testing function.")

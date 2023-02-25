@@ -8,14 +8,12 @@ from src.skeleton.model_skeleton import register_model
 class Resnet50(nn.Module):
     model_name = "resnet50"
 
-    def __init__(self, num_output, model, ret_emb, pretrain):
+    def __init__(self, num_output, ret_emb, pretrain):
         super(Resnet50, self).__init__()
-        if model is None and pretrain:
+        if pretrain:
             self.model = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
-        elif model is None:
-            self.model = models.resnet50()
         else:
-            self.model = model
+            self.model = models.resnet50()
         self.model.fc = nn.Identity()
         self.linear = nn.Linear(2048, num_output)
         self.ret_emb = ret_emb
@@ -37,7 +35,7 @@ class Resnet50(nn.Module):
 
 
 @register_model("resnet50")
-def init_resnet50(model_config, model=None):
-    return Resnet50(model_config["num_output"], model=model,
+def init_resnet50(model_config):
+    return Resnet50(model_config["num_output"],
                     ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False,
                     pretrain=model_config["pretrain"] if "pretrain" in model_config else True)
