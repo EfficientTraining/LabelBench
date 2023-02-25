@@ -416,13 +416,14 @@ class VOC2012(Dataset):
 
 
 @register_dataset("voc", LabelType.MULTI_LABEL)
-def get_voc_dataset(n_class,*args):
+def get_voc_dataset(data_dir,*args):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-    dataset = VOC2012("./data/voc2012", phase="trainval", transform=transform)
+    file_dir = os.path.join(data_dir, 'coco2014')
+    dataset = VOC2012(file_dir, phase="trainval", transform=transform)
     n_class = dataset.get_number_classes()
     train_dataset,valid_dataset, test_dataset = torch.utils.data.random_split(dataset,
                                                                 [10000, (len(dataset) - 10000)//2,(len(dataset) - 10000)//2],
@@ -432,7 +433,7 @@ def get_voc_dataset(n_class,*args):
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
-    train, val, test, _, _, _, n_class = get_voc_dataset(None)
+    train, val, test, _, _, _, n_class = get_voc_dataset("./data")
     print(len(train), len(test),n_class)
     loader = DataLoader(test, batch_size=2)
     img, target = next(iter(loader))

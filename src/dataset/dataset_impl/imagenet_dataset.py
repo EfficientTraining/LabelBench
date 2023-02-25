@@ -68,12 +68,12 @@ def download_imagenet2012(root,phase):
         print(f'{filename} dataset downloaded!')
 
 
-@register_dataset("imagenet", LabelType.MULTI_CLASS)
-def get_imagenet_dataset(n_class,*args):
+@register_dataset("imagenet_imb", LabelType.MULTI_CLASS)
+def get_imagenet_imb_dataset(n_class,data_dir,*args):
 
-    download_imagenet2012("./data","train") 
-    download_imagenet2012("./data","val")
-    download_imagenet2012("./data","dev_kit")
+    download_imagenet2012(data_dir,"train") 
+    download_imagenet2012(data_dir,"val")
+    download_imagenet2012(data_dir,"dev_kit")
 
     n_class=1000
     train_transform =  transforms.Compose([
@@ -95,9 +95,49 @@ def get_imagenet_dataset(n_class,*args):
         [lambda x: torch.LongTensor([x]),
          lambda x: torch.flatten(F.one_hot(torch.clip(x, min=None, max=n_class - 1), n_class))])
 
-    train_dataset = ImageNet("./data", split = "train", transform=train_transform, target_transform=target_transform ) 
+    train_dataset = ImageNet(data_dir, split = "train", transform=train_transform, target_transform=target_transform ) 
     #[TODO] I use validation as test because pytorchvision does not has test split, shall I add myself?
-    test_dataset = ImageNet("./data", split = "val", transform=test_transform, target_transform=target_transform)
+    test_dataset = ImageNet(data_dir, split = "val", transform=test_transform, target_transform=target_transform)
+
+    print("spliting test dataset into validation and testing")
+    valid_dataset,test_dataset = random_split(test_dataset,
+                                       [len(test_dataset) // 4, len(test_dataset) - len(test_dataset) // 4],
+                                       generator=torch.Generator().manual_seed(42))
+    
+
+    return train_dataset, valid_dataset, test_dataset, None, None, None, n_class
+
+
+@register_dataset("imagenet", LabelType.MULTI_CLASS)
+def get_imagenet_dataset(data_dir,*args):
+
+    download_imagenet2012(data_dir,"train") 
+    download_imagenet2012(data_dir,"val")
+    download_imagenet2012(data_dir,"dev_kit")
+
+    n_class=1000
+    train_transform =  transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+    ])
+    test_transform = transforms.Compose([
+        
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+    ])
+    target_transform = transforms.Compose(
+        [lambda x: torch.LongTensor([x]),
+         lambda x: torch.flatten(F.one_hot(x, n_class))])
+
+    train_dataset = ImageNet(data_dir, split = "train", transform=train_transform, target_transform=target_transform ) 
+    #[TODO] I use validation as test because pytorchvision does not has test split, shall I add myself?
+    test_dataset = ImageNet(data_dir, split = "val", transform=test_transform, target_transform=target_transform)
 
     print("spliting test dataset into validation and testing")
     valid_dataset,test_dataset = random_split(test_dataset,
@@ -110,7 +150,15 @@ def get_imagenet_dataset(n_class,*args):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _,_, _, n_class =  get_imagenet_dataset(None)
+
+    train, val, test, _,_, _, n_class =  get_imagenet_dataset(3,"./data")
+    print(len(train), len(val), len(test),n_class)
+    loader = DataLoader(train, batch_size=2)
+    x, y = next(iter(loader))
+    print(x.size(), y.size())
+    print(y)
+
+    train, val, test, _,_, _, n_class =  get_imagenet_dataset("./data")
     print(len(train), len(val), len(test),n_class)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))
