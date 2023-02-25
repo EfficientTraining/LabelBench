@@ -135,7 +135,7 @@ class COCO2014(Dataset):
         return img, target
 
 @register_dataset("coco", LabelType.MULTI_LABEL)
-def get_coco_dataset(n_class,*args):
+def get_coco_dataset(data_dir,*args):
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop((224, 224), scale=(0.66, 1.5), ratio=(1.0, 1.0)),
         transforms.RandomHorizontalFlip(),
@@ -147,8 +147,9 @@ def get_coco_dataset(n_class,*args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-    train_dataset = COCO2014("./data/coco2014", phase="train", transform=train_transform)
-    test_dataset = COCO2014("./data/coco2014", phase="val", transform=test_transform)
+    file_dir = os.path.join(data_dir, 'coco2014')
+    train_dataset = COCO2014(file_dir, phase="train", transform=train_transform)
+    test_dataset = COCO2014(file_dir, phase="val", transform=test_transform)
     valid_dataset,test_dataset = random_split(test_dataset,
                                        [len(test_dataset) // 4, len(test_dataset) - len(test_dataset) // 4],
                                        generator=torch.Generator().manual_seed(42))
@@ -161,7 +162,7 @@ def get_coco_dataset(n_class,*args):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _,_, _, _ = get_coco_dataset(None)
+    train, val, test, _,_, _, _ = get_coco_dataset("./data")
     print(len(train), len(val), len(test))
     loader = DataLoader(train, batch_size=1)
     img, target = next(iter(loader))

@@ -99,7 +99,10 @@ class Kuzushiji49:
                 os.path.exists(os.path.join(self.data_dir, self.test_file_labels)))
 
 @register_dataset("kuzushiji49", LabelType.MULTI_CLASS)
-def get_kuzushiji49_dataset(n_class, *args):
+def get_kuzushiji49_dataset(data_dir, *args):
+
+    n_class = 49
+
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize(32),
@@ -107,10 +110,10 @@ def get_kuzushiji49_dataset(n_class, *args):
         transforms.Normalize((0.1307,), (0.3081,)),
         transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
     ])
-    target_transform = transforms.Compose([lambda x: torch.LongTensor([x]), lambda x: torch.flatten(F.one_hot(x, 49))])
-    train_dataset = Kuzushiji49(data_dir="./data", train=True, transform=transforms.ToTensor(), target_transform=target_transform,
+    target_transform = transforms.Compose([lambda x: torch.LongTensor([x]), lambda x: torch.flatten(F.one_hot(x, n_class))])
+    train_dataset = Kuzushiji49(data_dir=data_dir, train=True, transform=transforms.ToTensor(), target_transform=target_transform,
                                 download=True)
-    test_dataset = Kuzushiji49(data_dir="./data", train=False, transform=transforms.ToTensor(), target_transform=target_transform,
+    test_dataset = Kuzushiji49(data_dir=data_dir, train=False, transform=transforms.ToTensor(), target_transform=target_transform,
                                download=True)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False, num_workers=40)
@@ -125,13 +128,13 @@ def get_kuzushiji49_dataset(n_class, *args):
     val_idxs, test_idxs = idxs[:-len(idxs) // 2], idxs[-len(idxs) // 2:]
 
     return train_dataset, Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs), train_labels, \
-           test_labels[val_idxs], test_labels[test_idxs], 49
+           test_labels[val_idxs], test_labels[test_idxs], n_class
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, train_labels, val_labels, test_labels, _ = get_kuzushiji49_dataset(None)
+    train, val, test, train_labels, val_labels, test_labels, _ = get_kuzushiji49_dataset("./data")
     print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))
