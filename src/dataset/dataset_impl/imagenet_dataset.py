@@ -96,7 +96,6 @@ def get_imagenet_dataset(data_dir,*args):
          lambda x: torch.flatten(F.one_hot(x, n_class))])
 
     train_dataset = ImageNet(data_dir, split = "train", transform=train_transform, target_transform=target_transform ) 
-    #[TODO] I use validation as test because pytorchvision does not has test split, shall I add myself?
     test_dataset = ImageNet(data_dir, split = "val", transform=test_transform, target_transform=target_transform)
 
     print("spliting test dataset into validation and testing")

@@ -39,34 +39,8 @@ def get_svhn_imb_dataset(n_class, data_dir, *args):
 
 @register_dataset("svhn", LabelType.MULTI_CLASS)
 def get_svhn_dataset(data_dir, *args):
-
     n_class = 10
-    
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    target_transform = transforms.Compose(
-        [lambda x: torch.LongTensor([x]),
-         lambda x: torch.flatten(F.one_hot(torch.clip(x, min=None, max=n_class - 1), n_class))])
-    train_dataset = SVHN(data_dir, split="train", download=True, transform=transform,
-                         target_transform=target_transform)
-    test_dataset = SVHN(data_dir, split="test", download=True, transform=transform,
-                        target_transform=target_transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False,
-                                               num_workers=40)
-    train_imgs, train_labels = next(iter(train_loader))
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=40)
-    test_imgs, test_labels = next(iter(test_loader))
-
-    train_dataset = DatasetOnMemory(train_imgs, train_labels, n_class)
-    test_dataset = DatasetOnMemory(test_imgs, test_labels, n_class)
-
-    rnd = np.random.RandomState(42)
-    idxs = rnd.permutation(len(test_dataset))
-    val_idxs, test_idxs = idxs[:-len(idxs) // 2], idxs[-len(idxs) // 2:]
-
-    return train_dataset, Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs), train_labels, \
-           test_labels[val_idxs], test_labels[test_idxs], n_class
+    return get_svhn_imb_dataset(n_class, data_dir, *args)
 
 
 if __name__ == "__main__":
