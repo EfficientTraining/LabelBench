@@ -1,0 +1,29 @@
+ALBench.metric.metric\_impl package
+===================================
+
+Submodules
+----------
+
+ALBench.metric.metric\_impl.multi\_class\_metric module
+-------------------------------------------------------
+
+.. automodule:: ALBench.metric.metric_impl.multi_class_metric
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.metric.metric\_impl.multi\_label\_metric module
+-------------------------------------------------------
+
+.. automodule:: ALBench.metric.metric_impl.multi_label_metric
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.metric.metric_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

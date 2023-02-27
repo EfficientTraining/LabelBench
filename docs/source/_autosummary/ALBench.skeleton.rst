@@ -1,0 +1,36 @@
+ALBench.skeleton
+================
+
+.. automodule:: ALBench.skeleton
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   ALBench.skeleton.active_learning_skeleton
+   ALBench.skeleton.dataset_skeleton
+   ALBench.skeleton.metric_skeleton
+   ALBench.skeleton.model_skeleton
+   ALBench.skeleton.trainer_skeleton
+

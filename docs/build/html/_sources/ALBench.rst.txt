@@ -1,0 +1,23 @@
+ALBench package
+===============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ALBench.dataset
+   ALBench.metric
+   ALBench.model
+   ALBench.skeleton
+   ALBench.strategy
+   ALBench.trainer
+
+Module contents
+---------------
+
+.. automodule:: ALBench
+   :members:
+   :undoc-members:
+   :show-inheritance:

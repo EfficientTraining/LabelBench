@@ -1,0 +1,31 @@
+﻿ALBench.dataset.dataset\_impl.cifar10\_imb\_dataset
+===================================================
+
+.. automodule:: ALBench.dataset.dataset_impl.cifar10_imb_dataset
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      get_cifar10_imb_dataset
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

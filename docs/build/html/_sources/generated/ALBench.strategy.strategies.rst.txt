@@ -1,0 +1,29 @@
+ALBench.strategy.strategies
+===========================
+
+.. automodule:: ALBench.strategy.strategies
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_strategy
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

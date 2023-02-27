@@ -1,0 +1,53 @@
+ALBench.dataset.dataset\_impl package
+=====================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ALBench.dataset.dataset_impl.legacy
+
+Submodules
+----------
+
+ALBench.dataset.dataset\_impl.caltech256\_dataset module
+--------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.caltech256_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.car\_multi\_label\_dataset module
+---------------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.car_multi_label_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.celeba\_dataset module
+----------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.celeba_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ALBench.dataset.dataset\_impl.cifar10\_imb\_dataset module
+----------------------------------------------------------
+
+.. automodule:: ALBench.dataset.dataset_impl.cifar10_imb_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.dataset.dataset_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

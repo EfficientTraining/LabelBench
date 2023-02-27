@@ -1,0 +1,36 @@
+ALBench.dataset.dataset\_impl.caltech256\_dataset
+=================================================
+
+.. automodule:: ALBench.dataset.dataset_impl.caltech256_dataset
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_caltech256_dataset
+      pil_loader
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Caltech256
+   
+   
+
+   
+   
+   
+
+
+

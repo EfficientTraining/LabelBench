@@ -1,0 +1,29 @@
+ALBench.strategy package
+========================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ALBench.strategy.strategy_impl
+
+Submodules
+----------
+
+ALBench.strategy.strategies module
+----------------------------------
+
+.. automodule:: ALBench.strategy.strategies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ALBench.strategy
+   :members:
+   :undoc-members:
+   :show-inheritance:
