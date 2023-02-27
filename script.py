@@ -21,7 +21,7 @@ if __name__ == "__main__":
     print(get_model_fn("resnet18"))
 
     print(datasets)
-    print(get_dataset("cifar10_imb_3", 100))
+    print(get_dataset("cifar10_imb_3", "./data"))
 
     print(strategies)
     print(get_strategy("random", None, None))

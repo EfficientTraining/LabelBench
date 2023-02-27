@@ -8,7 +8,7 @@ from src.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, Lab
 
 
 @register_dataset("cifar10_imb", LabelType.MULTI_CLASS)
-def get_cifar10_imb_dataset(n_class, *args):
+def get_cifar10_imb_dataset(n_class, data_dir,*args):
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.RandomCrop(32, padding=4),
@@ -19,8 +19,8 @@ def get_cifar10_imb_dataset(n_class, *args):
     target_transform = transforms.Compose(
         [lambda x: torch.LongTensor([x]),
          lambda x: torch.flatten(F.one_hot(torch.clip(x, min=None, max=n_class - 1), n_class))])
-    train_dataset = CIFAR10("./data", train=True, download=True, transform=transforms.ToTensor(), target_transform=target_transform)
-    test_dataset = CIFAR10("./data", train=False, download=True, transform=transforms.ToTensor(), target_transform=target_transform)
+    train_dataset = CIFAR10(data_dir, train=True, download=True, transform=transforms.ToTensor(), target_transform=target_transform)
+    test_dataset = CIFAR10(data_dir, train=False, download=True, transform=transforms.ToTensor(), target_transform=target_transform)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False, num_workers=40)
     train_imgs, train_labels = next(iter(train_loader))
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=40)
@@ -36,12 +36,28 @@ def get_cifar10_imb_dataset(n_class, *args):
            test_labels[val_idxs], test_labels[test_idxs], n_class
 
 
+@register_dataset("cifar10", LabelType.MULTI_CLASS)
+def get_cifar10_dataset(data_dir, *args):
+    n_class = 10
+    return get_cifar10_imb_dataset(n_class, data_dir,*args)
+
+
+
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, train_labels, val_labels, test_labels, _ = get_cifar10_imb_dataset(3)
+    train, val, test, train_labels, val_labels, test_labels, _ = get_cifar10_imb_dataset(3,"./data")
     print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))
     print(x.size(), y.size())
+    print(x,y)
+
+    train, val, test, train_labels, val_labels, test_labels, _ = get_cifar10_dataset("./data")
+    print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
+    loader = DataLoader(train, batch_size=2)
+    x, y = next(iter(loader))
+    print(x.size(), y.size())
+    print(x,y)
+
 
