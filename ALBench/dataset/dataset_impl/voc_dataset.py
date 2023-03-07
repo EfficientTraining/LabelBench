@@ -9,9 +9,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from tqdm import tqdm
 from torchvision import transforms
-from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, LabelType
-
-
+from ALBench.skeleton.dataset_skeleton import register_dataset, LabelType, TransformDataset
 
 object_categories = ['aeroplane', 'bicycle', 'bird', 'boat',
                      'bottle', 'bus', 'car', 'cat', 'chair',
@@ -326,12 +324,11 @@ def download_voc2012(root):
 
 
 class VOC2007(Dataset):
-    def __init__(self, root, phase, transform=None):
+    def __init__(self, root, phase):
         self.root = os.path.abspath(root)
         self.path_devkit = os.path.join(self.root, 'VOCdevkit')
         self.path_images = os.path.join(self.root, 'VOCdevkit', 'VOC2007', 'JPEGImages')
         self.phase = phase
-        self.transform = transform
         download_voc2007(self.root)
 
         # define path of csv file
@@ -356,14 +353,9 @@ class VOC2007(Dataset):
     def __getitem__(self, index):
         filename, target = self.images[index]
         img = Image.open(os.path.join(self.path_images, filename + '.jpg')).convert('RGB')
-        if self.transform is not None:
-            img = self.transform(img)
 
         data = {'image': img, 'name': filename, 'target': target}
         return data
-        # image = {'image': img, 'name': filename}
-        # return image, target
-        # return (img, filename), target
 
     def __len__(self):
         return len(self.images)
@@ -373,12 +365,11 @@ class VOC2007(Dataset):
 
 
 class VOC2012(Dataset):
-    def __init__(self, root, phase, transform=None):
+    def __init__(self, root, phase):
         self.root = os.path.abspath(root)
         self.path_devkit = os.path.join(self.root, 'VOCdevkit')
         self.path_images = os.path.join(self.root, 'VOCdevkit', 'VOC2012', 'JPEGImages')
         self.phase = phase
-        self.transform = transform
         download_voc2012(self.root)
 
         # define path of csv file
@@ -403,8 +394,6 @@ class VOC2012(Dataset):
     def __getitem__(self, index):
         filename, target = self.images[index]
         img = Image.open(os.path.join(self.path_images, filename + '.jpg')).convert('RGB')
-        if self.transform is not None:
-            img = self.transform(img)
         target = (target > 0).float()
         return img, target
 
@@ -416,25 +405,27 @@ class VOC2012(Dataset):
 
 
 @register_dataset("voc", LabelType.MULTI_LABEL)
-def get_voc_dataset(data_dir,*args):
+def get_voc_dataset(data_dir, *args):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     file_dir = os.path.join(data_dir, 'coco2014')
-    dataset = VOC2012(file_dir, phase="trainval", transform=transform)
+    dataset = VOC2012(file_dir, phase="trainval")
     n_class = dataset.get_number_classes()
-    train_dataset,valid_dataset, test_dataset = torch.utils.data.random_split(dataset,
-                                                                [10000, (len(dataset) - 10000)//2,(len(dataset) - 10000)//2],
-                                                                generator=torch.Generator().manual_seed(42))
-    return train_dataset, valid_dataset, test_dataset, None, None, None,n_class
+    train_dataset, val_dataset, test_dataset = \
+        torch.utils.data.random_split(dataset, [10000, (len(dataset) - 10000) // 2, (len(dataset) - 10000) // 2],
+                                      generator=torch.Generator().manual_seed(42))
+    return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
+           TransformDataset(test_dataset, transform=transform), None, None, None, n_class
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
+
     train, val, test, _, _, _, n_class = get_voc_dataset("./data")
-    print(len(train), len(test),n_class)
+    print(len(train), len(test), n_class)
     loader = DataLoader(test, batch_size=2)
     img, target = next(iter(loader))
     print(img.size())
