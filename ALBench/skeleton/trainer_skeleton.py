@@ -9,7 +9,7 @@ class Trainer:
     Trainer class for training model on given (partially) datasets.
     """
 
-    def __init__(self, trainer_config, dataset, model_fn, model_config, metric):
+    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, input_dim):
         """
         :param Dict trainer_config: Dictionary of hyper-parameters of the trainer.
         :param ALDataset dataset: An initial ALDataset.
@@ -23,6 +23,7 @@ class Trainer:
         self.model_config = model_config
         self.metric = metric
         self._eval_results = [None for _ in range(12)]
+        self.input_dim = input_dim
 
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
@@ -40,19 +41,16 @@ class Trainer:
         raise NotImplementedError("Subclass does not have implementation of training function.")
 
     def evaluate_on_train(self, model, mc_dropout=False):
-        train_dataset, _, _ = self.dataset.get_input_datasets()
         self._eval_results[0], self._eval_results[3], self._eval_results[6], self._eval_results[9] = \
-            self._test(train_dataset, model, mc_dropout=mc_dropout)
+            self._test("train", model, mc_dropout=mc_dropout)
 
     def evaluate_on_val(self, model, mc_dropout=False):
-        _, val_dataset, _ = self.dataset.get_input_datasets()
         self._eval_results[1], self._eval_results[4], self._eval_results[7], self._eval_results[10] = \
-            self._test(val_dataset, model, mc_dropout=mc_dropout)
+            self._test("val", model, mc_dropout=mc_dropout)
 
     def evaluate_on_test(self, model, mc_dropout=False):
-        _, _, test_dataset = self.dataset.get_input_datasets()
         self._eval_results[2], self._eval_results[5], self._eval_results[8], self._eval_results[11] = \
-            self._test(test_dataset, model, mc_dropout=mc_dropout)
+            self._test("test", model, mc_dropout=mc_dropout)
 
     def retrieve_inputs(self, input_types):
         inputs = [np.array(self._eval_results[int(t)]) for t in input_types]

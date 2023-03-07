@@ -1,0 +1,5 @@
+{
+  "model_name": "shallow",
+  "pretrain": false,
+  "ret_emb": false
+}

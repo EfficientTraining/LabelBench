@@ -35,7 +35,8 @@ def get_labels(dataset):
     :param torch.utils.data.Dataset dataset: PyTorch dataset.
     :return: All labels in numpy array.
     """
-    loader = DataLoader(dataset, batch_size=1000, shuffle=False, num_workers=10, drop_last=False)
+    loader = DataLoader(dataset, batch_size=1000,
+                        shuffle=False, num_workers=10, drop_last=False)
     labels = []
     for _, target in loader:
         labels.append(target)
@@ -58,9 +59,15 @@ class DatasetOnMemory(Dataset):
         return len(self.y)
 
     def __getitem__(self, item):
-        x = transforms.ToPILImage()(self.X[item])
+        x = self.X[item]
         y = self.y[item]
         return x, y
+
+    def get_inputs(self):
+        return self.X
+
+    def get_labels(self):
+        return self.y
 
 
 class TransformDataset(Dataset):
@@ -120,9 +127,12 @@ class ALDataset:
         :param LabelType label_type: Type of labels.
         :param int num_classes: Number of classes of the dataset.
         """
-        assert isinstance(train_dataset, TransformDataset), "Training dataset must be a TransformDataset."
-        assert isinstance(val_dataset, TransformDataset), "Validation dataset must be a TransformDataset."
-        assert isinstance(test_dataset, TransformDataset), "Test dataset must be a TransformDataset."
+        assert isinstance(
+            train_dataset, TransformDataset), "Training dataset must be a TransformDataset."
+        assert isinstance(
+            val_dataset, TransformDataset), "Validation dataset must be a TransformDataset."
+        assert isinstance(
+            test_dataset, TransformDataset), "Test dataset must be a TransformDataset."
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
@@ -132,22 +142,29 @@ class ALDataset:
         self.val_emb = None
         self.test_emb = None
         self.__labeled_idxs = None
-        self.train_labels = get_labels(train_dataset) if train_labels is None else train_labels
-        self.val_labels = get_labels(val_dataset) if val_labels is None else val_labels
-        self.test_labels = get_labels(train_dataset) if test_labels is None else test_labels
+        self.train_labels = get_labels(
+            train_dataset) if train_labels is None else train_labels
+        self.val_labels = get_labels(
+            val_dataset) if val_labels is None else val_labels
+        self.test_labels = get_labels(
+            test_dataset) if test_labels is None else test_labels
 
-    def update_emb(self, train_emb, val_emb, test_emb):
+    def update_emb(self, emb, dataset_split):
         """
         Update with the latest feature embeddings.
 
-        :param numpy.ndarray train_emb: Embeddings of training examples.
-        :param numpy.ndarray val_emb: Embeddings of validation examples.
-        :param numpy.ndarray test_emb: Embeddings of testing examples.
+        :param numpy.ndarray emb: Embeddings of examples.
+        :param str dataset_split: Split of dataset, can be 'train', 'val' or 'test'.
         :return:
         """
-        self.train_emb = train_emb
-        self.val_emb = val_emb
-        self.test_emb = test_emb
+        if dataset_split == 'train':
+            self.train_emb = emb
+        elif dataset_split == 'val':
+            self.val_emb = emb
+        elif dataset_split == 'test':
+            self.test_emb = emb
+        else:
+            raise Exception("Unknown dataset split.")
 
     def update_labeled_idxs(self, new_idxs):
         """
@@ -158,7 +175,8 @@ class ALDataset:
         if self.__labeled_idxs is None:
             self.__labeled_idxs = np.array(new_idxs)
         else:
-            self.__labeled_idxs = np.concatenate((self.__labeled_idxs, np.array(new_idxs)))
+            self.__labeled_idxs = np.concatenate(
+                (self.__labeled_idxs, np.array(new_idxs)))
 
     def get_embedding_datasets(self):
         """
@@ -168,8 +186,8 @@ class ALDataset:
         if self.train_emb is None or self.val_emb is None or self.test_emb is None:
             raise Exception("Embedding is not initialized.")
         return DatasetOnMemory(self.train_emb, self.train_labels, self.num_classes), \
-               DatasetOnMemory(self.val_emb, self.val_labels, self.num_classes), \
-               DatasetOnMemory(self.test_emb, self.test_labels, self.num_classes)
+            DatasetOnMemory(self.val_emb, self.val_labels, self.num_classes), \
+            DatasetOnMemory(self.test_emb, self.test_labels, self.num_classes)
 
     def get_input_datasets(self):
         """
@@ -181,6 +199,10 @@ class ALDataset:
     def __len__(self):
         """Length of the training set."""
         return len(self.train_dataset)
+    
+    def get_num_classes(self):
+        """Number of classes of the dataset."""
+        return self.num_classes
 
     def num_labeled(self):
         """Number of labeled examples in the pool."""
