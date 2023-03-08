@@ -6,7 +6,7 @@ import os
 from torch.utils.data import Dataset, Subset
 from PIL import Image
 from torchvision import transforms
-from ALBench.skeleton.dataset_skeleton import register_dataset, LabelType, TransformDataset
+from ALBench.skeleton.dataset_skeleton import register_dataset, LabelType
 
 
 def getting_data(url, path):
@@ -67,9 +67,10 @@ class MetaParsing:
 
 
 class CarDataset(Dataset):
-    def __init__(self, data_dir):
+    def __init__(self, transform, data_dir):
         self.labels, self.file_names = MetaParsing(data_dir).parsing()
         assert len(self.labels) == len(self.file_names)
+        self.transform = transform
         self.data_dir = data_dir
 
     def __len__(self):
@@ -78,18 +79,18 @@ class CarDataset(Dataset):
     def __getitem__(self, idx):
         img_loc = os.path.join(os.path.join(self.data_dir, "carimages/car_ims"), self.file_names[idx])
         image = Image.open(img_loc).convert('RGB')
+        single_img = self.transform(image)
 
-        return image, self.labels[idx]
+        return single_img, self.labels[idx]
 
 
 @register_dataset("car_multi_label", LabelType.MULTI_LABEL)
 def get_car_multi_label_dataset(data_dir, *args):
-    transform = transforms.Compose([
+    dataset = CarDataset(transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-    dataset = CarDataset(data_dir)
+    ]))
     rnd = np.random.RandomState(42)
     idxs = rnd.permutation(len(dataset))
     train_idxs, val_idxs, test_idxs = idxs[:len(dataset) - len(dataset) // 5], \
@@ -97,8 +98,7 @@ def get_car_multi_label_dataset(data_dir, *args):
                                       idxs[-len(dataset) // 10:]
     train_dataset, val_dataset, test_dataset = \
         Subset(dataset, train_idxs), Subset(dataset, val_idxs), Subset(dataset, test_idxs)
-    return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
-           TransformDataset(test_dataset, transform=transform), dataset.labels[train_idxs], dataset.labels[val_idxs], \
+    return train_dataset, val_dataset, test_dataset, dataset.labels[train_idxs], dataset.labels[val_idxs], \
            dataset.labels[test_idxs], 10
 
 
