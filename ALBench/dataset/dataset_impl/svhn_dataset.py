@@ -4,37 +4,28 @@ import numpy as np
 from torchvision import transforms
 from torch.utils.data import Subset
 from torchvision.datasets import SVHN
-from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, LabelType, register_dataset
+from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, LabelType, register_dataset, TransformDataset
 
 
 @register_dataset("svhn_imb", LabelType.MULTI_CLASS)
 def get_svhn_imb_dataset(n_class, data_dir, *args):
-    
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     target_transform = transforms.Compose(
         [lambda x: torch.LongTensor([x]),
          lambda x: torch.flatten(F.one_hot(torch.clip(x, min=None, max=n_class - 1), n_class))])
-    train_dataset = SVHN(data_dir, split="train", download=True, transform=transform,
-                         target_transform=target_transform)
-    test_dataset = SVHN(data_dir, split="test", download=True, transform=transform,
-                        target_transform=target_transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False,
-                                               num_workers=40)
-    train_imgs, train_labels = next(iter(train_loader))
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, num_workers=40)
-    test_imgs, test_labels = next(iter(test_loader))
-
-    train_dataset = DatasetOnMemory(train_imgs, train_labels, n_class)
-    test_dataset = DatasetOnMemory(test_imgs, test_labels, n_class)
+    train_dataset = SVHN(data_dir, split="train", download=True, target_transform=target_transform)
+    test_dataset = SVHN(data_dir, split="test", download=True, target_transform=target_transform)
 
     rnd = np.random.RandomState(42)
     idxs = rnd.permutation(len(test_dataset))
     val_idxs, test_idxs = idxs[:-len(idxs) // 2], idxs[-len(idxs) // 2:]
 
-    return train_dataset, Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs), train_labels, \
-           test_labels[val_idxs], test_labels[test_idxs], n_class
+    val_dataset, test_dataset = Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs)
+
+    return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
+           TransformDataset(test_dataset, transform=transform), None, None, None, n_class
 
 
 @register_dataset("svhn", LabelType.MULTI_CLASS)

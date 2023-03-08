@@ -7,7 +7,7 @@ from torchvision.datasets.utils import download_and_extract_archive
 from torchvision.datasets.vision import VisionDataset
 import os
 from PIL import Image
-from ALBench.skeleton.dataset_skeleton import register_dataset, LabelType
+from ALBench.skeleton.dataset_skeleton import register_dataset, LabelType, TransformDataset
 
 
 def pil_loader(path):
@@ -23,8 +23,6 @@ class Caltech256(VisionDataset):
     Args:
         root (string): Root directory of dataset where directory
             ``caltech256`` exists or will be saved to if download is set to True.
-        transform (callable, optional): A function/transform that takes in an PIL image
-            and returns a transformed version. E.g, ``transforms.RandomCrop``
         target_transform (callable, optional): A function/transform that takes in the
             target and transforms it.
         download (bool, optional): If true, downloads the dataset from the internet and
@@ -33,13 +31,12 @@ class Caltech256(VisionDataset):
     """
 
     def __init__(
-        self,
-        root,
-        transform = None,
-        target_transform = None,
-        download: bool = False,
+            self,
+            root,
+            target_transform=None,
+            download: bool = False,
     ) -> None:
-        super().__init__(os.path.join(root, "caltech256"), transform=transform, target_transform=target_transform)
+        super().__init__(os.path.join(root, "caltech256"), target_transform=target_transform)
         os.makedirs(self.root, exist_ok=True)
 
         if download:
@@ -81,9 +78,6 @@ class Caltech256(VisionDataset):
 
         target = self.y[index]
 
-        if self.transform is not None:
-            img = self.transform(img)
-
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -120,7 +114,7 @@ def get_caltech256_dataset(data_dir, *args):
     ])
     target_transform = transforms.Compose(
         [lambda x: torch.LongTensor([x]) % 256, lambda x: torch.flatten(F.one_hot(x, 256))])
-    dataset = Caltech256(root=data_dir, transform=transform, target_transform=target_transform, download=True)
+    dataset = Caltech256(root=data_dir, target_transform=target_transform, download=True)
     rnd = np.random.RandomState(42)
     idxs = rnd.permutation(len(dataset))
     train_idxs, val_idxs, test_idxs = idxs[:len(dataset) - len(dataset) // 5], \
@@ -128,7 +122,8 @@ def get_caltech256_dataset(data_dir, *args):
                                       idxs[-len(dataset) // 10:]
     train_dataset, val_dataset, test_dataset = \
         Subset(dataset, train_idxs), Subset(dataset, val_idxs), Subset(dataset, test_idxs)
-    return train_dataset, val_dataset, test_dataset, None, None, None, 256
+    return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
+           TransformDataset(test_dataset, transform=transform), None, None, None, 256
 
 
 if __name__ == "__main__":
