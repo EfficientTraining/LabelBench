@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset, random_split
 import pickle
 from torchvision import transforms
-from ALBench.skeleton.dataset_skeleton import register_dataset, LabelType, TransformDataset
+from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, LabelType
 
 urls = {'train_img': 'http://images.cocodataset.org/zips/train2014.zip',
         'val_img': 'http://images.cocodataset.org/zips/val2014.zip',
@@ -134,9 +134,8 @@ class COCO2014(Dataset):
         target[labels] = 1
         return img, target
 
-
 @register_dataset("coco", LabelType.MULTI_LABEL)
-def get_coco_dataset(data_dir, *args):
+def get_coco_dataset(data_dir,*args):
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop((224, 224), scale=(0.66, 1.5), ratio=(1.0, 1.0)),
         transforms.RandomHorizontalFlip(),
@@ -149,28 +148,27 @@ def get_coco_dataset(data_dir, *args):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     file_dir = os.path.join(data_dir, 'coco2014')
-    train_dataset = COCO2014(file_dir, phase="train")
-    test_dataset = COCO2014(file_dir, phase="val")
-    valid_dataset, test_dataset = random_split(test_dataset,
-                                               [len(test_dataset) // 4, len(test_dataset) - len(test_dataset) // 4],
-                                               generator=torch.Generator().manual_seed(42))
+    train_dataset = COCO2014(file_dir, phase="train", transform=train_transform)
+    test_dataset = COCO2014(file_dir, phase="val", transform=test_transform)
+    valid_dataset,test_dataset = random_split(test_dataset,
+                                       [len(test_dataset) // 4, len(test_dataset) - len(test_dataset) // 4],
+                                       generator=torch.Generator().manual_seed(42))
 
-    n_class = train_dataset.num_classes
+    n_class=train_dataset.num_classes
 
-    return TransformDataset(train_dataset, transform=train_transform), \
-           TransformDataset(valid_dataset, transform=test_transform), \
-           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class
+    return train_dataset, valid_dataset, test_dataset, None, None, None, n_class
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _, _, _, _ = get_coco_dataset("./data")
+    train, val, test, _,_, _, _ = get_coco_dataset("./data")
     print(len(train), len(val), len(test))
     loader = DataLoader(train, batch_size=1)
     img, target = next(iter(loader))
     print(img.size())
     print(target)
     print(target.size())
+    
 
-# [TESTED]
+#[TESTED]

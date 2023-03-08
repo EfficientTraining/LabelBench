@@ -1,7 +1,6 @@
 from enum import Enum
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
 import torch
 
 
@@ -48,58 +47,25 @@ class DatasetOnMemory(Dataset):
     A PyTorch dataset where all data lives on CPU memory.
     """
 
-    def __init__(self, X, y, n_class):
+    def __init__(self, X, y, n_class, transform=None, target_transform=None):
         self.X = X
         self.y = y
         assert len(self.X) == len(self.y)
         self.n_class = n_class
+        self.transform = transform
+        self.target_transform = target_transform
 
     def __len__(self):
         return len(self.y)
 
     def __getitem__(self, item):
-        x = transforms.ToPILImage()(self.X[item])
+        x = self.X[item]
         y = self.y[item]
+        if self.transform:
+            x = self.transform(x)
+        if self.target_transform:
+            y = self.target_transform(y)
         return x, y
-
-
-class TransformDataset(Dataset):
-    """
-    A PyTorch Dataset where you can dynamically set transforms.
-
-    Be careful about its behavior when combined with dataloaders!
-    See https://discuss.pytorch.org/t/changing-transformation-applied-to-data-during-training/15671 for details.
-    """
-
-    def __init__(self, dataset, transform=None, target_transform=None):
-        self.dataset = dataset
-        self.__transform = transform
-        self.__target_transform = target_transform
-        self.__default_transform = transform
-        self.__default_target_transform = target_transform
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, item):
-        x, y = self.dataset[item]
-        if self.__transform:
-            x = self.__transform(x)
-        if self.__target_transform:
-            y = self.__target_transform(y)
-        return x, y
-
-    def set_transform(self, transform):
-        self.__transform = transform
-
-    def set_target_transform(self, target_transform):
-        self.__target_transform = target_transform
-
-    def set_to_default_transform(self):
-        self.__transform = self.__default_transform
-
-    def set_to_default_target_transform(self):
-        self.__target_transform = self.__default_target_transform
 
 
 class ALDataset:
@@ -120,9 +86,6 @@ class ALDataset:
         :param LabelType label_type: Type of labels.
         :param int num_classes: Number of classes of the dataset.
         """
-        assert isinstance(train_dataset, TransformDataset), "Training dataset must be a TransformDataset."
-        assert isinstance(val_dataset, TransformDataset), "Validation dataset must be a TransformDataset."
-        assert isinstance(test_dataset, TransformDataset), "Test dataset must be a TransformDataset."
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
