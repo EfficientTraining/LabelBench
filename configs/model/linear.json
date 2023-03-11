@@ -1,0 +1,5 @@
+{
+  "model_name": "linear",
+  "pretrain": false,
+  "ret_emb": false
+}

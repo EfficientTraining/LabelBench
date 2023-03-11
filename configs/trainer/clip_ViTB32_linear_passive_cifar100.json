@@ -1,0 +1,9 @@
+{
+  "trainer_name": "sklearn_passive",
+  "loss_fn": "none",
+  "pred_fn": "none",
+  "optim_name": "lbfgs",
+  "regularizer_param": 0.316,
+  "max_iter": 1000,
+  "num_workers": 40
+}
