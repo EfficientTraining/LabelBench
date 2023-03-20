@@ -25,7 +25,7 @@ class PyTorchPassiveTrainer(Trainer):
         model.train()
         optimizer = self.trainer_config["optim_fn"](model.parameters())
 
-        if self.trainer_config["use_embed_feat"]:
+        if self.trainer_config["use_embeddings"]:
             train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
         else:
             train_dataset, val_dataset, test_dataset = self.dataset.get_input_datasets()
@@ -65,7 +65,7 @@ class PyTorchPassiveTrainer(Trainer):
                 if isinstance(m, nn.Dropout):
                     m.train()
 
-        if self.trainer_config["use_embed_feat"]:
+        if self.trainer_config["use_embeddings"]:
             datasets = self.dataset.get_embedding_datasets()
             assert all(
                 dataset is not None for dataset in datasets), "embedding features not found"
