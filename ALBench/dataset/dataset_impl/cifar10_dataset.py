@@ -5,10 +5,7 @@ import numpy as np
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, LabelType, TransformDataset
-
-CLASSES = ('plane', 'car', 'bird', 'cat',
-           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
+from ALBench.dataset.dataset_impl.label_name.classnames import get_classnames
 
 @register_dataset("cifar10_imb", LabelType.MULTI_CLASS)
 def get_cifar10_imb_dataset(n_class, data_dir, *args):
@@ -35,9 +32,9 @@ def get_cifar10_imb_dataset(n_class, data_dir, *args):
     val_dataset, test_dataset = Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs)
 
     if n_class<10:
-        classnames = CLASSES[:n_class]+ ("others",)
+        classnames = get_classnames("cifar10")[:n_class]+ ("others",)
     else:
-        classnames = CLASSES
+        classnames = get_classnames("cifar10")
 
     return TransformDataset(train_dataset, transform=train_transform), \
            TransformDataset(val_dataset, transform=test_transform), \
