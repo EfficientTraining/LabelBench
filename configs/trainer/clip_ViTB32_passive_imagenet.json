@@ -1,7 +1,6 @@
 {
   "trainer_name": "pytorch_passive",
-  "use_builtin": false,
-  "use_embeddings": true,
+  "use_embed_feat": false,
   "loss_fn": "Cross Entropy",
   "pred_fn": "Softmax",
   "optim_name": "AdamW",
@@ -11,7 +10,7 @@
   "warmup_steps": 500,
   "clip_grad": 1.0,
   "max_epoch": 10,
-  "train_batch_size": 100,
+  "train_batch_size": 512,
   "test_batch_size": 100,
   "num_workers": 10
 }

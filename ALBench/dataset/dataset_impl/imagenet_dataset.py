@@ -9,7 +9,7 @@ from torchvision.datasets import ImageNet
 from tqdm import tqdm
 from urllib.request import urlretrieve
 from ALBench.skeleton.dataset_skeleton import LabelType, register_dataset, TransformDataset
-
+from ALBench.dataset.dataset_impl.label_name.classnames import get_classnames
 
 def download_url(url, destination=None, progress_bar=True):
     """Download a URL to a local file.
@@ -98,16 +98,18 @@ def get_imagenet_dataset(data_dir, *args):
     valid_dataset, test_dataset = random_split(test_dataset,
                                                [len(test_dataset) // 4, len(test_dataset) - len(test_dataset) // 4],
                                                generator=torch.Generator().manual_seed(42))
+    
+    classnames = get_classnames("imagenet")
 
     return TransformDataset(train_dataset, transform=train_transform), \
            TransformDataset(valid_dataset, transform=test_transform), \
-           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class
+           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class, classnames
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _, _, _, n_class = get_imagenet_dataset("./data")
+    train, val, test, _, _, _, n_class, _ = get_imagenet_dataset("./data")
     print(len(train), len(val), len(test), n_class)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))
