@@ -63,12 +63,12 @@ class MetaParsing:
                     labels[i, self.name2class[name]] = 1
             if int(x.split(" ")[-1]) <= self.year:
                 labels[i, len(self.name2class)] = 1
-        return labels, self.file_names
+        return labels, self.file_names, list(self.name2class.values())
 
 
 class CarDataset(Dataset):
     def __init__(self, data_dir):
-        self.labels, self.file_names = MetaParsing(data_dir).parsing()
+        self.labels, self.file_names, self.classnames = MetaParsing(data_dir).parsing()
         assert len(self.labels) == len(self.file_names)
         self.data_dir = data_dir
 
@@ -99,10 +99,10 @@ def get_car_multi_label_dataset(data_dir, *args):
         Subset(dataset, train_idxs), Subset(dataset, val_idxs), Subset(dataset, test_idxs)
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
            TransformDataset(test_dataset, transform=transform), dataset.labels[train_idxs], dataset.labels[val_idxs], \
-           dataset.labels[test_idxs], 10
+           dataset.labels[test_idxs], 10, dataset.classnames
 
 
 if __name__ == "__main__":
-    train, val, test, _, _, _, _ = get_car_multi_label_dataset(100)
+    train, val, test, _, _, _, _, _ = get_car_multi_label_dataset(100)
     print(train, val, test)
     print(len(train), len(val), len(test))

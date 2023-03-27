@@ -49,7 +49,7 @@ def update_embed_dataset(model_fn, dataset, file_name, embed_model_config, **kwa
                                num_workers=embed_model_config["num_workers"], file_name=f"{file_name}_{dataset_split}")
         dataset.update_emb(feat_emb, dataset_split=dataset_split)
 
-    # Update the input dim of the classifer model as the embedding dim.
+    # Update the input dim of the classifier model as the embedding dim.
     input_dim = feat_emb.shape[1]
 
     return input_dim

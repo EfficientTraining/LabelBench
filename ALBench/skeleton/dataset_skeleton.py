@@ -4,6 +4,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import torch
 
+from tqdm import tqdm
+
 
 class LabelType(Enum):
     """Formats of label."""
@@ -38,7 +40,8 @@ def get_labels(dataset):
     loader = DataLoader(dataset, batch_size=1000,
                         shuffle=False, num_workers=10, drop_last=False)
     labels = []
-    for _, target in loader:
+    print("Getting labels...")
+    for _, target in tqdm(loader):
         labels.append(target)
     labels = torch.cat(labels, dim=0)
     return labels.numpy()
@@ -116,7 +119,7 @@ class ALDataset:
     """
 
     def __init__(self, train_dataset, val_dataset, test_dataset, train_labels, val_labels, test_labels, label_type,
-                 num_classes):
+                 num_classes, classnames):
         """
         :param torch.utils.data.Dataset train_dataset: Training dataset that contains both examples and labels.
         :param torch.utils.data.Dataset val_dataset: Validation dataset that contains both examples and labels.
@@ -148,6 +151,8 @@ class ALDataset:
             val_dataset) if val_labels is None else val_labels
         self.test_labels = get_labels(
             test_dataset) if test_labels is None else test_labels
+
+        self.classnames = classnames
 
     def update_emb(self, emb, dataset_split):
         """
@@ -203,6 +208,10 @@ class ALDataset:
     def get_num_classes(self):
         """Number of classes of the dataset."""
         return self.num_classes
+
+    def get_classnames(self):
+        """Class names of the dataset."""
+        return self.classnames
 
     def num_labeled(self):
         """Number of labeled examples in the pool."""

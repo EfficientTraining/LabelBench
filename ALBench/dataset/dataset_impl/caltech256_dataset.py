@@ -123,13 +123,14 @@ def get_caltech256_dataset(data_dir, *args):
     train_dataset, val_dataset, test_dataset = \
         Subset(dataset, train_idxs), Subset(dataset, val_idxs), Subset(dataset, test_idxs)
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
-           TransformDataset(test_dataset, transform=transform), None, None, None, 256
+           TransformDataset(test_dataset, transform=transform), None, None, None, 256, None
+    # TODO: add class names
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _, _, _, _ = get_caltech256_dataset()
+    train, val, test, _, _, _, _, _ = get_caltech256_dataset()
     print(len(train), len(val), len(test))
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))

@@ -5,7 +5,7 @@ import numpy as np
 from torchvision import transforms
 from torchvision.datasets import CIFAR100
 from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, LabelType, register_dataset, TransformDataset
-
+from ALBench.dataset.dataset_impl.label_name.classnames import get_classnames
 
 @register_dataset("cifar100_imb", LabelType.MULTI_CLASS)
 def get_cifar100_imb_dataset(n_class, data_dir, *args):
@@ -31,9 +31,14 @@ def get_cifar100_imb_dataset(n_class, data_dir, *args):
 
     val_dataset, test_dataset = Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs)
 
+    if n_class<100:
+        classnames = get_classnames("cifar100")[:n_class]+ ("others",)
+    else:
+        classnames = get_classnames("cifar100")
+
     return TransformDataset(train_dataset, transform=train_transform), \
            TransformDataset(val_dataset, transform=test_transform), \
-           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class
+           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class, classnames
 
 
 @register_dataset("cifar100", LabelType.MULTI_CLASS)
@@ -45,14 +50,14 @@ def get_cifar100_dataset(data_dir, *args):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, train_labels, val_labels, test_labels, _ = get_cifar100_imb_dataset(3, "./data")
+    train, val, test, train_labels, val_labels, test_labels, _, _ = get_cifar100_imb_dataset(3, "./data")
     print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))
     print(x.size(), y.size())
     print(y)
 
-    train, val, test, train_labels, val_labels, test_labels, _ = get_cifar100_dataset("./data")
+    train, val, test, train_labels, val_labels, test_labels, _, _ = get_cifar100_dataset("./data")
     print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))

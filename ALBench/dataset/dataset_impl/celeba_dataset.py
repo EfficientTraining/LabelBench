@@ -11,9 +11,10 @@ def get_celeb_dataset(data_dir, *args):
     val_dataset = CelebA(root=data_dir, split="valid", target_type="attr", download=True)
     test_dataset = CelebA(root=data_dir, split="test", target_type="attr", download=True)
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
-           TransformDataset(test_dataset, transform=transform), None, None, None, 40
+           TransformDataset(test_dataset, transform=transform), None, None, None, 40, None
+    #TODO: add class names
 
 
 if __name__ == "__main__":
-    train, val, test, _, _, _, _ = get_celeb_dataset()
+    train, val, test, _, _, _, _, _ = get_celeb_dataset()
     print(len(train), len(val), len(test))
