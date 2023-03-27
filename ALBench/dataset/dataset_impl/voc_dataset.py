@@ -418,14 +418,13 @@ def get_voc_dataset(data_dir, *args):
         torch.utils.data.random_split(dataset, [10000, (len(dataset) - 10000) // 2, (len(dataset) - 10000) // 2],
                                       generator=torch.Generator().manual_seed(42))
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
-           TransformDataset(test_dataset, transform=transform), None, None, None, n_class, None
-    #TODO: add class names
+           TransformDataset(test_dataset, transform=transform), None, None, None, n_class
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _, _, _, n_class,_ = get_voc_dataset("./data")
+    train, val, test, _, _, _, n_class = get_voc_dataset("./data")
     print(len(train), len(test), n_class)
     loader = DataLoader(test, batch_size=2)
     img, target = next(iter(loader))

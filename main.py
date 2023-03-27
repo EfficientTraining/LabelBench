@@ -1,16 +1,15 @@
+import wandb
 import argparse
+import torch
+import numpy as np
 import json
 import os
 
-import numpy as np
-import torch
-import wandb
-from ALBench.trainer.trainer import (get_fns, get_optimizer_fn,
-                                     get_scheduler_fn, get_trainer)
 from ALBench.dataset.datasets import get_dataset
 from ALBench.dataset.feature_extractor import update_embed_dataset
-from ALBench.metric.metrics import get_metric
 from ALBench.model.model import get_model_fn
+from ALBench.metric.metrics import get_metric
+from ALBench.trainer.trainer import get_trainer, get_fns, get_optimizer_fn
 from ALBench.strategy.strategies import get_strategy
 
 if __name__ == "__main__":
@@ -56,7 +55,6 @@ if __name__ == "__main__":
     strategy_config["strategy_name"], embed_model_config["model_name"], classifier_model_config["model_name"])
     wandb.init(project="Active Learning, %s, Batch Size=%d" % (dataset_name, batch_size), entity=wandb_name,
                name=run_name, config=vars(args))
-    
 
     # Retrieve ALDataset and number of classes.
     dataset = get_dataset(dataset_name, args.data_dir)
@@ -81,7 +79,6 @@ if __name__ == "__main__":
     # Construct trainer.
     trainer_config = get_fns(trainer_config)
     trainer_config = get_optimizer_fn(trainer_config)
-    trainer_config = get_scheduler_fn(trainer_config)
     trainer = get_trainer(trainer_config["trainer_name"], trainer_config, dataset, model_fn, classifier_model_config,
                           metric, input_dim)
 

@@ -1,9 +1,13 @@
 import numpy as np
 import torch
-from ALBench.skeleton.trainer_skeleton import Trainer
+from torch.nn import functional as F
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
-from torch.nn import functional as F
+
+from ALBench.skeleton.trainer_skeleton import Trainer
+
+
 
 
 class SklearnPassiveTrainer(Trainer):
@@ -19,14 +23,13 @@ class SklearnPassiveTrainer(Trainer):
 
         if self.metric.metric_name == "multi_class":
             # Logistic regression in sklearn is for multi-class classification only.
-            # Sklearn automatically adapts to binary or nonbinary classification.
+            # Slearn automatically adapts to binary or nonbinary classification.
             classifier = LogisticRegression(random_state=0, C=self.trainer_config["regularizer_param"], solver=self.trainer_config["optim_name"], max_iter=self.trainer_config["max_iter"], verbose=1)
 
             # Convert one-hot encoded multi-class to the category index.
             labels = np.argmax(train_dataset.get_labels(), axis=1)
 
             inputs = train_dataset.get_inputs()
-            
             classifier.fit(inputs, labels)
         else:
             # TODO: support other metrics for sklearn training.
