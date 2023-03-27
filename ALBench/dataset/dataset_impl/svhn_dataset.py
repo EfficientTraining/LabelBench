@@ -25,8 +25,7 @@ def get_svhn_imb_dataset(n_class, data_dir, *args):
     val_dataset, test_dataset = Subset(test_dataset, val_idxs), Subset(test_dataset, test_idxs)
 
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
-           TransformDataset(test_dataset, transform=transform), None, None, None, n_class, None
-    #TODO: add classnames
+           TransformDataset(test_dataset, transform=transform), None, None, None, n_class
 
 
 @register_dataset("svhn", LabelType.MULTI_CLASS)
@@ -38,7 +37,7 @@ def get_svhn_dataset(data_dir, *args):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, train_labels, val_labels, test_labels, _, _ = get_svhn_imb_dataset(3,"./data")
+    train, val, test, train_labels, val_labels, test_labels, _ = get_svhn_imb_dataset(3,"./data")
     print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))

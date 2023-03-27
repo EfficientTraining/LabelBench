@@ -159,14 +159,13 @@ def get_coco_dataset(data_dir, *args):
 
     return TransformDataset(train_dataset, transform=train_transform), \
            TransformDataset(valid_dataset, transform=test_transform), \
-           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class, None
-    #TODO: add classnames
+           TransformDataset(test_dataset, transform=test_transform), None, None, None, n_class
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, _, _, _, _, _ = get_coco_dataset("./data")
+    train, val, test, _, _, _, _ = get_coco_dataset("./data")
     print(len(train), len(val), len(test))
     loader = DataLoader(train, batch_size=1)
     img, target = next(iter(loader))
