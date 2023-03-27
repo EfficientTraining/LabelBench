@@ -132,13 +132,14 @@ def get_kuzushiji49_dataset(data_dir, *args):
 
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
            TransformDataset(test_dataset, transform=transform), train_labels, test_labels[val_idxs], \
-           test_labels[test_idxs], n_class
+           test_labels[test_idxs], n_class, None
+    #TODO: add class names
 
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    train, val, test, train_labels, val_labels, test_labels, _ = get_kuzushiji49_dataset("./data")
+    train, val, test, train_labels, val_labels, test_labels, _, _ = get_kuzushiji49_dataset("./data")
     print(len(train), len(val), len(test), train_labels.shape, val_labels.shape, test_labels.shape)
     loader = DataLoader(train, batch_size=2)
     x, y = next(iter(loader))

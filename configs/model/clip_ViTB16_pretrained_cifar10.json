@@ -1,0 +1,7 @@
+{
+  "model_name": "clip_vitb16",
+  "pretrain": true,
+  "ret_emb": false,
+  "use_customized_transform": true,
+  "template": "openai_imagenet_template"
+}
