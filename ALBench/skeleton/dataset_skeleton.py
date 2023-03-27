@@ -1,9 +1,7 @@
-from enum import Enum
-import numpy as np
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
 import torch
-
+import numpy as np
+from enum import Enum
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 
@@ -129,6 +127,7 @@ class ALDataset:
         :param Optional[numpy.ndarray] test_labels: All testing labels for easy accessibility.
         :param LabelType label_type: Type of labels.
         :param int num_classes: Number of classes of the dataset.
+        :param List[str]: A list of names of each class.
         """
         assert isinstance(
             train_dataset, TransformDataset), "Training dataset must be a TransformDataset."

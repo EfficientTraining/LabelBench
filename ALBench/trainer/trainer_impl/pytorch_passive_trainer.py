@@ -1,11 +1,11 @@
 import copy
-
 import numpy as np
 import torch
 import torch.nn as nn
-from ALBench.skeleton.trainer_skeleton import Trainer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from ALBench.skeleton.trainer_skeleton import Trainer
 
 
 class PyTorchPassiveTrainer(Trainer):
@@ -19,7 +19,8 @@ class PyTorchPassiveTrainer(Trainer):
             model = self.model_fn(self.model_config, self.input_dim)
             if "template" in self.model_config:
                 if hasattr(model, 'init_head_withzeroshot'):
-                    model.init_head_withzeroshot(classnames = self.dataset.get_classnames(), template=self.model_config["template"])
+                    model.init_head_withzeroshot(classnames=self.dataset.get_classnames(),
+                                                 template=self.model_config["template"])
                 else:
                     raise ValueError("Please use a model that supports zero-shot learning.")
             model = model.cuda()
@@ -31,34 +32,36 @@ class PyTorchPassiveTrainer(Trainer):
 
         devices = list(range(torch.cuda.device_count()))
         print('Using devices', devices)
-        model = torch.nn.DataParallel(model, device_ids=devices)
+        if len(devices) > 1:
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=devices)
         model.train()
 
         params = [p for p in model.parameters() if p.requires_grad]
 
         optimizer = self.trainer_config["optim_fn"](params)
-        total_steps = self.trainer_config["max_epoch"]*len(self.dataset)//self.trainer_config["train_batch_size"]
-        scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) if "scheduler_fn" in self.trainer_config else None
+        total_steps = self.trainer_config["max_epoch"] * len(self.dataset) // self.trainer_config["train_batch_size"]
+        scheduler = self.trainer_config["scheduler_fn"](optimizer,
+                                                        total_steps) if "scheduler_fn" in self.trainer_config else None
 
         if self.trainer_config["use_embeddings"]:
             train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
         else:
             train_dataset, val_dataset, test_dataset = self.dataset.get_input_datasets()
 
-        # If clip model, we need to update the transform of dataset.
+        # Use customized transform for model specific data transformation.
         if self.model_config["use_customized_transform"]:
             transform = model.module.get_preprocess()
             train_dataset.set_transform(transform)
 
-        loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True, num_workers=self.trainer_config["num_workers"])
+        loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
+                            num_workers=self.trainer_config["num_workers"])
 
-        for epoch in range(max_epoch):
+        for _ in tqdm(range(max_epoch), desc="Training Epoch"):
             preds = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             labels = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             losses = np.zeros(len(train_dataset), dtype=float)
             counter = 0
-            print("Training epoch {}...".format(epoch))
-            for img, target, *other in tqdm(loader):
+            for img, target, *other in tqdm(loader, desc="Batch Index"):
                 img, target = img.float().cuda(), target.float().cuda()
 
                 with torch.cuda.amp.autocast():
@@ -134,5 +137,3 @@ class PyTorchPassiveTrainer(Trainer):
         assert counter == len(preds)
         model.train()
         return preds, labels, losses, np.concatenate(embs, axis=0) if len(embs) > 0 else None
-
-
