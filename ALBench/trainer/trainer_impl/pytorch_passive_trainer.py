@@ -32,9 +32,7 @@ class PyTorchPassiveTrainer(Trainer):
 
         devices = list(range(torch.cuda.device_count()))
         print('Using devices', devices)
-        if len(devices) > 1:
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=devices)
-        model.train()
+        model = torch.nn.parallel.DataParallel(model, device_ids=devices)
 
         params = [p for p in model.parameters() if p.requires_grad]
 
@@ -111,7 +109,7 @@ class PyTorchPassiveTrainer(Trainer):
 
         # If clip model, we need to update the transform of dataset.
         if self.model_config["use_customized_transform"]:
-            transform = model.get_preprocess()
+            transform = model.module.get_preprocess()
             dataset.set_transform(transform)
 
         loader = DataLoader(dataset, batch_size=self.trainer_config["test_batch_size"], shuffle=False, num_workers=10)

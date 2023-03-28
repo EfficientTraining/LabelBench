@@ -80,8 +80,10 @@ def get_scheduler_fn(trainer_config):
 def assign_learning_rate(param_group, new_lr):
     param_group["lr"] = new_lr
 
+
 def _warmup_lr(base_lr, warmup_length, step):
     return base_lr * (step + 1) / warmup_length
+
 
 def cosine_lr(optimizer, base_lrs, warmup_length, steps):
     if not isinstance(base_lrs, list):
