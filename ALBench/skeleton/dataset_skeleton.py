@@ -1,8 +1,7 @@
 import torch
 import numpy as np
 from enum import Enum
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from torch.utils.data import Dataset
 
 
 class LabelType(Enum):
@@ -27,22 +26,6 @@ def register_dataset(name: str, type: LabelType):
         return get_fn
 
     return dataset_decor
-
-
-def get_labels(dataset):
-    """
-    Helper function to get all labels in a dataset with the original order.
-    :param torch.utils.data.Dataset dataset: PyTorch dataset.
-    :return: All labels in numpy array.
-    """
-    loader = DataLoader(dataset, batch_size=1000,
-                        shuffle=False, num_workers=10, drop_last=False)
-    labels = []
-    print("Getting labels...")
-    for _, target in tqdm(loader):
-        labels.append(target)
-    labels = torch.cat(labels, dim=0)
-    return labels.numpy()
 
 
 class DatasetOnMemory(Dataset):
@@ -127,7 +110,7 @@ class ALDataset:
         :param Optional[numpy.ndarray] test_labels: All testing labels for easy accessibility.
         :param LabelType label_type: Type of labels.
         :param int num_classes: Number of classes of the dataset.
-        :param List[str]: A list of names of each class.
+        :param List[str] classnames: A list of names of each class.
         """
         assert isinstance(
             train_dataset, TransformDataset), "Training dataset must be a TransformDataset."
@@ -144,12 +127,9 @@ class ALDataset:
         self.val_emb = None
         self.test_emb = None
         self.__labeled_idxs = None
-        self.train_labels = get_labels(
-            train_dataset) if train_labels is None else train_labels
-        self.val_labels = get_labels(
-            val_dataset) if val_labels is None else val_labels
-        self.test_labels = get_labels(
-            test_dataset) if test_labels is None else test_labels
+        self.__train_labels = train_labels
+        self.__val_labels = val_labels
+        self.__test_labels = test_labels
 
         self.classnames = classnames
 
@@ -189,9 +169,17 @@ class ALDataset:
         """
         if self.train_emb is None or self.val_emb is None or self.test_emb is None:
             raise Exception("Embedding is not initialized.")
-        return DatasetOnMemory(self.train_emb, self.train_labels, self.num_classes), \
-            DatasetOnMemory(self.val_emb, self.val_labels, self.num_classes), \
-            DatasetOnMemory(self.test_emb, self.test_labels, self.num_classes)
+        if callable(self.__train_labels):
+            self.__train_labels = self.__train_labels()
+        if callable(self.__val_labels):
+            self.__val_labels = self.__val_labels()
+        if callable(self.__test_labels):
+            self.__test_labels = self.__test_labels()
+        mean = np.mean(self.train_emb, axis=0)
+        std = np.std(self.train_emb, axis=0)
+        return DatasetOnMemory((self.train_emb - mean) / std, self.__train_labels, self.num_classes), \
+            DatasetOnMemory((self.val_emb - mean) / std, self.__val_labels, self.num_classes), \
+            DatasetOnMemory((self.test_emb - mean) / std, self.__test_labels, self.num_classes)
 
     def get_input_datasets(self):
         """

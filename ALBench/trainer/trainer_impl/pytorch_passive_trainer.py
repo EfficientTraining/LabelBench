@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from ALBench.skeleton.trainer_skeleton import Trainer
+from ALBench.trainer.utils import EarlyStopping
 
 
 class PyTorchPassiveTrainer(Trainer):
@@ -38,8 +39,8 @@ class PyTorchPassiveTrainer(Trainer):
 
         optimizer = self.trainer_config["optim_fn"](params)
         total_steps = self.trainer_config["max_epoch"] * len(self.dataset) // self.trainer_config["train_batch_size"]
-        scheduler = self.trainer_config["scheduler_fn"](optimizer,
-                                                        total_steps) if "scheduler_fn" in self.trainer_config else None
+        scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
+            if "scheduler_fn" in self.trainer_config else None
 
         if self.trainer_config["use_embeddings"]:
             train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
@@ -47,18 +48,22 @@ class PyTorchPassiveTrainer(Trainer):
             train_dataset, val_dataset, test_dataset = self.dataset.get_input_datasets()
 
         # Use customized transform for model specific data transformation.
-        if self.model_config["use_customized_transform"]:
+        if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
             transform = model.module.get_preprocess()
             train_dataset.set_transform(transform)
 
         loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
                             num_workers=self.trainer_config["num_workers"])
 
+        # initialize the early_stopping object
+        early_stopping = EarlyStopping(
+            patience=self.trainer_config["patience"] if "patience" in self.trainer_config else None, verbose=True)
+
+        counter = 0
         for _ in tqdm(range(max_epoch), desc="Training Epoch"):
             preds = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             labels = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             losses = np.zeros(len(train_dataset), dtype=float)
-            counter = 0
             for img, target, *other in tqdm(loader, desc="Batch Index"):
                 img, target = img.float().cuda(), target.float().cuda()
 
@@ -73,17 +78,27 @@ class PyTorchPassiveTrainer(Trainer):
                 preds[counter: (counter + len(pred))] = self.trainer_config["pred_fn"](pred.data).cpu().numpy()
                 labels[counter: (counter + len(pred))] = target.data.cpu().numpy()
                 losses[counter: (counter + len(pred))] = loss.data.cpu().numpy()
-                counter += len(pred)
 
                 if scheduler is not None:
                     scheduler(counter)
+                counter += 1
+
                 optimizer.zero_grad()
                 loss.backward()
-
                 if "clip_grad" in self.trainer_config:
                     nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
-
                 optimizer.step()
+
+            _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
+            print(valid_losses.mean())
+            if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+                # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
+                # checkpoint of the current model.
+                early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
+                if early_stopping.early_stop:
+                    print("Early stopping.")
+                    break
+
         return model
 
     def _test(self, dataset_split, model, **kwargs):
@@ -96,7 +111,7 @@ class PyTorchPassiveTrainer(Trainer):
         if self.trainer_config["use_embeddings"]:
             datasets = self.dataset.get_embedding_datasets()
             assert all(
-                dataset is not None for dataset in datasets), "embedding features not found"
+                dataset is not None for dataset in datasets), "Embedding features not found."
         else:
             datasets = self.dataset.get_input_datasets()
 
@@ -108,7 +123,7 @@ class PyTorchPassiveTrainer(Trainer):
             dataset = datasets[2]
 
         # If clip model, we need to update the transform of dataset.
-        if self.model_config["use_customized_transform"]:
+        if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
             transform = model.module.get_preprocess()
             dataset.set_transform(transform)
 

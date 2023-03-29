@@ -26,7 +26,7 @@ def get_feature(model, dataset, batch_size, num_workers, file_name, **kwargs):
             features[counter: (counter + len(feature))] = feature.data.cpu().numpy()
             counter += len(feature)
 
-        torch.save(features, f'{file_name}_features.pt')
+        torch.save(features, f'{file_name}_features.pt', pickle_protocol=4)
 
     return features
 
@@ -39,7 +39,7 @@ def update_embed_dataset(model_fn, dataset, file_name, embed_model_config, **kwa
         cur_dataset = dataset.get_input_datasets()[i]
 
         # Model specific transform of dataset.
-        if embed_model_config["use_customized_transform"]:
+        if "use_customized_transform" in embed_model_config and embed_model_config["use_customized_transform"]:
             print("Update the transform of dataset to model's special preprocess.")
             transform = model.get_preprocess()
             cur_dataset.set_transform(transform)
