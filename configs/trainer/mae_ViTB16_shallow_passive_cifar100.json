@@ -1,6 +1,5 @@
 {
   "trainer_name": "pytorch_passive",
-  "use_builtin": false,
   "use_embeddings": true,
   "loss_fn": "Cross Entropy",
   "pred_fn": "Softmax",

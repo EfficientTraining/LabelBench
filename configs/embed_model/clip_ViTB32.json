@@ -3,6 +3,6 @@
   "use_customized_transform": true,
   "ret_emb": true,
   "pretrain": true,
-  "inference_batch_size": 100,
+  "inference_batch_size": 500,
   "num_workers": 40
 }

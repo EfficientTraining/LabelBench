@@ -19,7 +19,7 @@ class MultiClassMetric(Metric):
             acc = np.sum(target * correct) / max(count[i], 1)
             accs.append(acc)
         accs = np.array(accs)
-        return np.mean(accs), accs
+        return np.sum(accs * count) / np.sum(count), accs
 
     def compute(self, epoch, preds, labels, losses, val_preds, val_labels, val_losses, test_preds, test_labels,
                 test_losses, num_labeled=None, labeled=None):
@@ -37,10 +37,13 @@ class MultiClassMetric(Metric):
         self.dict = {"Epoch": epoch,
                      "Num Labeled": len(preds) if num_labeled is None else num_labeled,
                      "Training Accuracy": train_acc,
+                     "Balanced Training Accuracy": np.mean(train_accs),
                      "Training Loss": train_loss,
                      "Validation Accuracy": val_acc,
+                     "Balanced Validation Accuracy": np.mean(val_accs),
                      "Validation Loss": val_loss,
                      "Test Accuracy": test_acc,
+                     "Balanced Test Accuracy": np.mean(test_accs),
                      "Test Loss": test_loss,
                      "Total Number of Positive": np.sum(num_pos),
                      "Min Class Number of Positive": np.min(num_pos),

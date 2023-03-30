@@ -5,8 +5,7 @@ import os
 import numpy as np
 import torch
 import wandb
-from ALBench.trainer.trainer import (get_fns, get_optimizer_fn,
-                                     get_scheduler_fn, get_trainer)
+from ALBench.trainer.trainer import (get_fns, get_optimizer_fn, get_scheduler_fn, get_trainer)
 from ALBench.dataset.datasets import get_dataset
 from ALBench.dataset.feature_extractor import update_embed_dataset
 from ALBench.metric.metrics import get_metric
@@ -32,7 +31,9 @@ if __name__ == "__main__":
 
     seed = args.seed
     torch.manual_seed(seed)
+    torch.backends.cudnn.benchmark = True
     np.random.seed(seed + 42)
+    torch.multiprocessing.set_sharing_strategy('file_system')
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     wandb_name = args.wandb_name
