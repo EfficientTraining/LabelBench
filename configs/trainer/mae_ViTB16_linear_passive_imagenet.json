@@ -1,0 +1,17 @@
+{
+  "trainer_name": "pytorch_passive",
+  "use_embeddings": true,
+  "loss_fn": "Cross Entropy",
+  "pred_fn": "Softmax",
+  "optim_name": "SGD",
+  "lr": 0.1,
+  "momentum": 0.9,
+  "scheduler_name": "CosineLR",
+  "warmup_steps": 5,
+  "max_epoch": 30,
+  "early_stop": false,
+  "patience": 5,
+  "train_batch_size": 4096,
+  "test_batch_size": 10000,
+  "num_workers": 20
+}

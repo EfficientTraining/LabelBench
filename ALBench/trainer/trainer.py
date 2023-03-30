@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam, SGD, AdamW
+from timm.loss import LabelSmoothingCrossEntropy
 
 import ALBench.trainer.trainer_impl
 from ALBench.skeleton.trainer_skeleton import trainers
@@ -20,6 +21,12 @@ def get_fns(trainer_config):
         trainer_config["loss_fn"] = F.binary_cross_entropy_with_logits
     elif trainer_config["loss_fn"] == "Cross Entropy":
         trainer_config["loss_fn"] = F.cross_entropy
+    elif trainer_config["loss_fn"] == "LabelSmoothingCrossEntropy":
+        def loss_fn(x, target):
+            loss = LabelSmoothingCrossEntropy(smoothing=trainer_config["smoothing"])
+            return loss(x, torch.argmax(target, dim=-1))
+
+        trainer_config["loss_fn"] = loss_fn
 
     # Prediction function
     if trainer_config["pred_fn"] == "Sigmoid":
@@ -118,4 +125,5 @@ def step_lr(optimizer, base_lr, step_size, gamma):
         for param_group in optimizer.param_groups:
             if (step + 1) % step_size == 0:
                 assign_learning_rate(param_group, base_lr * (gamma ** ((step + 1) // step_size)))
+
     return _lr_adjuster
