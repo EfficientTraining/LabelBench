@@ -54,9 +54,9 @@ class PyTorchPassiveTrainer(Trainer):
                 "Customized transform is only supported for non-embedding models."
 
         # Get the training dataset and the corresponding dataloader for the non-embedding dataset. 
-        # Otherwise, we get the saved embedding dataset and the corresponding dataloader for each epoch tp accelerate
+        # Otherwise, we get the saved embedding dataset and the corresponding dataloader for each epoch to accelerate
         # the training.
-        if "use_embeddings" not in self.trainer_config or not self.trainer_config["use_embeddings"]:
+        if "use_embeddings" not in self.trainer_config or (not self.trainer_config["use_embeddings"]):
             train_dataset, _, _ = self.dataset.get_input_datasets()
             if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
                 transform = model.module.get_preprocess(split="train")
@@ -74,9 +74,7 @@ class PyTorchPassiveTrainer(Trainer):
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             counter = 0
 
-            if not self.trainer_config["use_embeddings"]:
-                pass
-            else:
+            if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
                 self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
 
