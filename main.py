@@ -7,7 +7,7 @@ import torch
 import wandb
 from ALBench.trainer.trainer import (get_fns, get_optimizer_fn, get_scheduler_fn, get_trainer)
 from ALBench.dataset.datasets import get_dataset
-from ALBench.dataset.feature_extractor import update_embed_dataset
+from ALBench.dataset.feature_extractor import get_feature
 from ALBench.metric.metrics import get_metric
 from ALBench.model.model import get_model_fn
 from ALBench.strategy.strategies import get_strategy
@@ -63,15 +63,16 @@ if __name__ == "__main__":
     dataset = get_dataset(dataset_name, args.data_dir)
     classifier_model_config["num_output"] = dataset.get_num_classes()
 
-    # Construct embedding model if needed.
+    # Construct embedding model and get_embedding_feature function if needed.
     if embed_model_config["model_name"] != "none":
-        model_fn = get_model_fn(embed_model_config["model_name"])
+        embed_model_fn = get_model_fn(embed_model_config["model_name"])
         folder_name = os.path.join(data_dir, dataset_name)
         os.makedirs(folder_name, exist_ok=True)
         file_name = "{}/{}_{}".format(folder_name, dataset_name, embed_model_config["model_name"])
-        input_dim = update_embed_dataset(model_fn, dataset, file_name, embed_model_config)
+        def get_feature_fn(dataset, dataset_split, epoch):
+            return get_feature(embed_model_fn, dataset, dataset_split, file_name, embed_model_config, epoch)
     else:
-        input_dim = None
+        get_feature_fn = None
 
     # Retrieve metric object.
     metric = get_metric(metric_name)
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     trainer_config = get_optimizer_fn(trainer_config)
     trainer_config = get_scheduler_fn(trainer_config)
     trainer = get_trainer(trainer_config["trainer_name"], trainer_config, dataset, model_fn, classifier_model_config,
-                          metric, input_dim)
+                          metric, get_feature_fn)
 
     # Retrieve active learning strategy.
     strategy = get_strategy(strategy_config["strategy_name"], strategy_config, dataset)

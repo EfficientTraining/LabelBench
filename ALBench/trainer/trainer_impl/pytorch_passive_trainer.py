@@ -12,10 +12,16 @@ from ALBench.trainer.utils import EarlyStopping
 class PyTorchPassiveTrainer(Trainer):
     trainer_name = "pytorch_passive"
 
-    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, input_dim):
-        super().__init__(trainer_config, dataset, model_fn, model_config, metric, input_dim)
+    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
+        super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
 
     def train(self, finetune_model=None, finetune_config=None):
+
+        # Update the embedding dataset once to get the input dimension.
+        if self.trainer_config["use_embeddings"]:
+            self.dataset.update_embedding_dataset(epoch=0, get_feature_fn=self.get_feature_fn)
+            self.input_dim = self.dataset.get_embedding_dim()
+
         if finetune_model is None:
             model = self.model_fn(self.model_config, self.input_dim)
             if "template" in self.model_config:
@@ -42,31 +48,47 @@ class PyTorchPassiveTrainer(Trainer):
         scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
             if "scheduler_fn" in self.trainer_config else None
 
-        if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-            train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
-        else:
-            train_dataset, val_dataset, test_dataset = self.dataset.get_input_datasets()
-
-        # Use customized transform for model specific data transformation.
+        # Check to avoid using customized transform for embedding dataset.
         if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
-            transform = model.module.get_preprocess(split="train")
-            train_dataset.set_transform(transform)
+            assert self.trainer_config["use_embeddings"] and self.model_config["use_customized_transform"] == False, \
+                "Customized transform is only supported for non-embedding models."
 
-        # Only use labeled examples for training.
-        train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+        # Get the training dataset and the corresponding dataloader for the non-embedding dataset. 
+        # Otherwise, we get the saved embedding dataset and the corresponding dataloader for each epoch tp accelerate
+        # the training.
+        if "use_embeddings" not in self.trainer_config or not self.trainer_config["use_embeddings"]:
+            train_dataset, _, _ = self.dataset.get_input_datasets()
+            if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
+                transform = model.module.get_preprocess(split="train")
+                train_dataset.set_transform(transform)
 
-        loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
-                            num_workers=self.trainer_config["num_workers"])
+            # Only use labeled examples for training.
+            train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+            loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
+                                num_workers=self.trainer_config["num_workers"])
 
         # initialize the early_stopping object
         early_stopping = EarlyStopping(
             patience=self.trainer_config["patience"] if "patience" in self.trainer_config else None, verbose=True)
 
-        for _ in tqdm(range(max_epoch), desc="Training Epoch"):
+        for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             counter = 0
+
+            if not self.trainer_config["use_embeddings"]:
+                pass
+            else:
+                self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
+                train_dataset, _, _ = self.dataset.get_embedding_datasets()
+
+                # Only use labeled examples for training.
+                train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+                loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
+                                    num_workers=self.trainer_config["num_workers"])
+
             preds = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             labels = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             losses = np.zeros(len(train_dataset), dtype=float)
+
             for img, target, *other in tqdm(loader, desc="Batch Index"):
                 img, target = img.float().cuda(), target.float().cuda()
 
