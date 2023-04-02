@@ -42,14 +42,14 @@ class PyTorchPassiveTrainer(Trainer):
         scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
             if "scheduler_fn" in self.trainer_config else None
 
-        if self.trainer_config["use_embeddings"]:
+        if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
             train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
         else:
             train_dataset, val_dataset, test_dataset = self.dataset.get_input_datasets()
 
         # Use customized transform for model specific data transformation.
         if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
-            transform = model.module.get_preprocess()
+            transform = model.module.get_preprocess(split="train")
             train_dataset.set_transform(transform)
 
         loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
@@ -108,7 +108,7 @@ class PyTorchPassiveTrainer(Trainer):
                 if isinstance(m, nn.Dropout):
                     m.train()
 
-        if self.trainer_config["use_embeddings"]:
+        if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
             datasets = self.dataset.get_embedding_datasets()
             assert all(
                 dataset is not None for dataset in datasets), "Embedding features not found."
@@ -124,7 +124,7 @@ class PyTorchPassiveTrainer(Trainer):
 
         # If clip model, we need to update the transform of dataset.
         if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
-            transform = model.module.get_preprocess()
+            transform = model.module.get_preprocess(split="test")
             dataset.set_transform(transform)
 
         loader = DataLoader(dataset, batch_size=self.trainer_config["test_batch_size"], shuffle=False, num_workers=10)

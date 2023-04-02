@@ -1,13 +1,17 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import timm.models.vision_transformer
 import os
 import hashlib
 import urllib
 import warnings
+import math
 from tqdm import tqdm
 from functools import partial
 from timm.models.layers import trunc_normal_
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from timm.data import create_transform
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 
@@ -51,16 +55,16 @@ class MAEVisionTransformer(timm.models.vision_transformer.VisionTransformer):
     """
 
     def __init__(self, ret_emb=False, pretrain=True, **kwargs):
-        super(MAEVisionTransformer, self).__init__(**kwargs)
         assert pretrain, "MAEVisionTransformer only support pretrain model"
+        super(MAEVisionTransformer, self).__init__(**kwargs)
+        self.global_pool = (self.num_classes != 0)
 
         # Setup model.
         if self.num_classes != 0:
             norm_layer = kwargs['norm_layer']
             embed_dim = kwargs['embed_dim']
             self.fc_norm = norm_layer(embed_dim)
-
-            del self.norm  # remove the original norm
+            del self.norm  # Remove the original normalization layer.
 
         # Load pretrained checkpoint.
         download_url = "https://dl.fbaipublicfiles.com/mae/pretrain/mae_pretrain_vit_base.pth"
@@ -92,11 +96,6 @@ class MAEVisionTransformer(timm.models.vision_transformer.VisionTransformer):
             trunc_normal_(self.head.weight, std=2e-5)
 
         self.ret_emb = ret_emb
-        self.preprocess_transform = transforms.Compose([
-            transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     def interpolate_pos_embed(self, checkpoint_model):
         if 'pos_embed' in checkpoint_model:
@@ -142,7 +141,7 @@ class MAEVisionTransformer(timm.models.vision_transformer.VisionTransformer):
 
         return outcome
 
-    def forward(self, imgs, ret_features=False, freeze=True):
+    def forward(self, imgs, ret_features=False, freeze=False):
         if freeze:
             with torch.no_grad():
                 features = self.forward_features(imgs)
@@ -150,17 +149,55 @@ class MAEVisionTransformer(timm.models.vision_transformer.VisionTransformer):
             features = self.forward_features(imgs)
 
         if ret_features:
-            return self.forward_head(features), features.data
+            return self.head(features), features.data
         elif self.ret_emb:
-            return self.forward_head(features), features
+            return self.head(features), features
         else:
-            return self.forward_head(features)
+            return self.head(features)
 
     def get_embedding_dim(self):
         return self.embed_dim
 
-    def get_preprocess(self):
-        return self.preprocess_transform
+    def get_preprocess(self, split):
+        if self.num_classes == 0:
+            # Linear probing.
+            if split == "train":
+                return transforms.Compose([
+                    transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+            else:
+                return transforms.Compose([
+                    transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        else:
+            # End-to-end finetuning.
+            mean = IMAGENET_DEFAULT_MEAN
+            std = IMAGENET_DEFAULT_STD
+            if split == "train":
+                transform = create_transform(
+                    input_size=224,
+                    is_training=True,
+                    color_jitter=None,
+                    auto_augment="rand-m9-mstd0.5-inc1",
+                    interpolation='bicubic',
+                    re_prob=0.25,
+                    re_mode='pixel',
+                    re_count=1,
+                    mean=mean,
+                    std=std,
+                )
+                return transform
+            else:
+                return transforms.Compose([
+                    transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std)
+                ])
 
 
 @register_model("mae_vitb16")

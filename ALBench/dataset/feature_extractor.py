@@ -12,8 +12,7 @@ def get_feature(model, dataset, batch_size, num_workers, file_name, **kwargs):
         print(f"Loading features from {file_name}_features.pt")
         features = torch.load(f'{file_name}_features.pt')
     else:
-        loader = DataLoader(dataset, batch_size=batch_size,
-                            num_workers=num_workers)
+        loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
         model.eval()
         features = np.zeros((len(dataset), model.get_embedding_dim()), dtype=float)
         counter = 0
@@ -22,7 +21,8 @@ def get_feature(model, dataset, batch_size, num_workers, file_name, **kwargs):
         for img, _, *other in tqdm(loader):
             img = img.float().cuda()
             with torch.cuda.amp.autocast():
-                _, feature = model(img)
+                with torch.no_grad():
+                    _, feature = model(img)
             features[counter: (counter + len(feature))] = feature.data.cpu().numpy()
             counter += len(feature)
 
@@ -41,7 +41,7 @@ def update_embed_dataset(model_fn, dataset, file_name, embed_model_config, **kwa
         # Model specific transform of dataset.
         if "use_customized_transform" in embed_model_config and embed_model_config["use_customized_transform"]:
             print("Update the transform of dataset to model's special preprocess.")
-            transform = model.get_preprocess()
+            transform = model.get_preprocess(split=dataset_split)
             cur_dataset.set_transform(transform)
 
         # Compute the embedding of dataset and add to dataset.

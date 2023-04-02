@@ -29,7 +29,7 @@ class CLIPVisionOnly(nn.Module):
         else:
             self.classifier = nn.Identity()
 
-    def forward(self, imgs, ret_features=False, freeze=True):
+    def forward(self, imgs, ret_features=False, freeze=False):
         if freeze:
             with torch.no_grad():
                 features = self.image_encoder_model.encode_image(imgs)
@@ -50,7 +50,7 @@ class CLIPVisionOnly(nn.Module):
     def get_embedding_dim(self):
         return self.embed_dim
 
-    def get_preprocess(self):
+    def get_preprocess(self, split):
         return self.preprocess_transform
 
 
