@@ -9,3 +9,4 @@ wandb
 git+https://github.com/openai/CLIP.git
 git+https://github.com/decile-team/submodlib.git
 timm
+wilds

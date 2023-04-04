@@ -62,18 +62,23 @@ class TransformDataset(Dataset):
     See https://discuss.pytorch.org/t/changing-transformation-applied-to-data-during-training/15671 for details.
     """
 
-    def __init__(self, dataset, transform=None, target_transform=None):
+    def __init__(self, dataset, transform=None, target_transform=None, ignore_metadata=False):
         self.dataset = dataset
         self.__transform = transform
         self.__target_transform = target_transform
         self.__default_transform = transform
         self.__default_target_transform = target_transform
+        self.ignore_metadata = ignore_metadata
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, item):
-        x, y = self.dataset[item]
+        if self.ignore_metadata:
+            x, y = self.dataset[item][:2]
+        else:
+            x, y = self.dataset[item]
+
         if self.__transform:
             x = self.__transform(x)
         if self.__target_transform:
