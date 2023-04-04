@@ -62,8 +62,8 @@ class PyTorchPassiveTrainer(Trainer):
         early_stopping = EarlyStopping(
             patience=self.trainer_config["patience"] if "patience" in self.trainer_config else None, verbose=True)
 
-        counter = 0
         for _ in tqdm(range(max_epoch), desc="Training Epoch"):
+            counter = 0
             preds = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             labels = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
             losses = np.zeros(len(train_dataset), dtype=float)
@@ -77,7 +77,6 @@ class PyTorchPassiveTrainer(Trainer):
                         pred, _ = model(img, ret_features=True)
                         pred = pred.squeeze(-1)
                     loss = loss_fn(pred, target, *other)
-
                 preds[counter: (counter + len(pred))] = self.trainer_config["pred_fn"](pred.data).cpu().numpy()
                 labels[counter: (counter + len(pred))] = target.data.cpu().numpy()
                 losses[counter: (counter + len(pred))] = loss.data.cpu().numpy()
@@ -92,11 +91,11 @@ class PyTorchPassiveTrainer(Trainer):
                     nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
                 optimizer.step()
 
-            _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
-            print(valid_losses.mean())
             if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
                 # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
                 # checkpoint of the current model.
+                _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
+                print(valid_losses.mean())
                 early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
                 if early_stopping.early_stop:
                     print("Early stopping.")

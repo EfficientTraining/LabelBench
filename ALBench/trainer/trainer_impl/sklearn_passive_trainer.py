@@ -23,9 +23,9 @@ class SklearnPassiveTrainer(Trainer):
             classifier = LogisticRegression(random_state=0, C=self.trainer_config["regularizer_param"], solver=self.trainer_config["optim_name"], max_iter=self.trainer_config["max_iter"], verbose=1)
 
             # Convert one-hot encoded multi-class to the category index.
-            labels = np.argmax(train_dataset.get_labels(), axis=1)
+            labels = np.argmax(train_dataset.get_labels()[self.dataset.labeled_idxs()], axis=1)
 
-            inputs = train_dataset.get_inputs()
+            inputs = train_dataset.get_inputs()[self.dataset.labeled_idxs()]
             
             classifier.fit(inputs, labels)
         else:
