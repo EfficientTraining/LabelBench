@@ -1,22 +1,22 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class ALInput(Enum):
-    TRAIN_PRED = 1
-    VAL_PRED = 2
-    TEST_PRED = 3
+class ALInput(IntEnum):
+    TRAIN_PRED = 0
+    VAL_PRED = 1
+    TEST_PRED = 2
 
-    TRAIN_LABEL = 4
-    VAL_LABEL = 5
-    TEST_LABEL = 6
+    TRAIN_LABEL = 3
+    VAL_LABEL = 4
+    TEST_LABEL = 5
 
-    TRAIN_LOSS = 7
-    VAL_LOSS = 8
-    TEST_LOSS = 9
+    TRAIN_LOSS = 6
+    VAL_LOSS = 7
+    TEST_LOSS = 8
 
-    TRAIN_EMBEDDING = 10
-    VAL_EMBEDDING = 11
-    TEST_EMBEDDING = 12
+    TRAIN_EMBEDDING = 9
+    VAL_EMBEDDING = 10
+    TEST_EMBEDDING = 11
 
 
 def has_train_input(input_types):

@@ -10,8 +10,12 @@ class MultiClassMetric(Metric):
     def __accuracy(preds, targets):
         n_class = preds.shape[1]
         accs = []
-        preds_label = np.argmax(preds, axis=-1)
-        targets_label = np.argmax(targets, axis=-1)
+        if n_class == 2:
+            targets_label = targets[:, 1].astype(int)
+            preds_label = (preds[:, 1] >= 0.5).astype(int)
+        else:
+            preds_label = np.argmax(preds, axis=-1)
+            targets_label = np.argmax(targets, axis=-1)
         correct = (preds_label == targets_label).astype(float)
         count = np.sum(targets, axis=0)
         for i in range(n_class):

@@ -58,6 +58,9 @@ class PyTorchPassiveTrainer(Trainer):
         # the training.
         if "use_embeddings" not in self.trainer_config or (not self.trainer_config["use_embeddings"]):
             train_dataset, _, _ = self.dataset.get_input_datasets()
+            class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0),
+                                         a_min=1, a_max=None)
+            class_weights = torch.from_numpy(class_weights).float().cuda()
             if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
                 transform = model.module.get_preprocess(split="train")
                 train_dataset.set_transform(transform)
@@ -80,14 +83,14 @@ class PyTorchPassiveTrainer(Trainer):
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
                 self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
+                class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0),
+                                             a_min=1, a_max=None)
+                class_weights = torch.from_numpy(class_weights).float().cuda()
+
                 # Only use labeled examples for training.
                 train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
                 loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
                                     num_workers=self.trainer_config["num_workers"])
-
-            preds = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
-            labels = np.zeros((len(train_dataset), self.dataset.num_classes), dtype=float)
-            losses = np.zeros(len(train_dataset), dtype=float)
 
             for img, target, *other in tqdm(loader, desc="Batch Index"):
                 img, target = img.float().cuda(), target.float().cuda()
@@ -98,10 +101,10 @@ class PyTorchPassiveTrainer(Trainer):
                     else:
                         pred, _ = model(img, ret_features=True)
                         pred = pred.squeeze(-1)
-                    loss = loss_fn(pred, target, *other)
-                preds[counter: (counter + len(pred))] = self.trainer_config["pred_fn"](pred.data).cpu().numpy()
-                labels[counter: (counter + len(pred))] = target.data.cpu().numpy()
-                losses[counter: (counter + len(pred))] = loss.data.cpu().numpy()
+                    if "weighted" in self.trainer_config and self.trainer_config["weighted"]:
+                        loss = loss_fn(pred, target, weight=class_weights)
+                    else:
+                        loss = loss_fn(pred, target)
 
                 if scheduler is not None:
                     scheduler(counter)

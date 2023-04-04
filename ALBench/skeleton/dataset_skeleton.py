@@ -221,3 +221,8 @@ class ALDataset:
     def labeled_idxs(self):
         """Indexes of the labeled examples in chronological order."""
         return np.array(self.__labeled_idxs)
+
+    def get_train_labels(self):
+        if callable(self.__train_labels):
+            self.__train_labels = self.__train_labels()
+        return np.array(self.__train_labels)
