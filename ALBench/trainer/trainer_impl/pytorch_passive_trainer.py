@@ -2,7 +2,7 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from ALBench.skeleton.trainer_skeleton import Trainer
@@ -51,6 +51,9 @@ class PyTorchPassiveTrainer(Trainer):
         if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
             transform = model.module.get_preprocess(split="train")
             train_dataset.set_transform(transform)
+
+        # Only use labeled examples for training.
+        train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
 
         loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
                             num_workers=self.trainer_config["num_workers"])
