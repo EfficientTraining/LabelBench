@@ -160,7 +160,7 @@ class MAEVisionTransformer(timm.models.vision_transformer.VisionTransformer):
 
     def get_preprocess(self, split):
         if self.num_classes == 0:
-            # Linear probing.
+            # Linear probing or shallow net.
             if split == "train":
                 return transforms.Compose([
                     transforms.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
