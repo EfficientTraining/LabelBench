@@ -1,0 +1,10 @@
+{
+  "strategy_name" : "bait",
+  "batch_size": 1,
+  "use_embeddings": true,
+  "max_iter": 2,
+  "lamb": 0.1,
+  "linear_search": false,
+  "fisher_comp_ratio": 4,
+  "grad_comp_ratio": 4
+}

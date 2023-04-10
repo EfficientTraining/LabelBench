@@ -8,7 +8,7 @@
   "scheduler_name": "StepLR",
   "step_size": 4000,
   "gamma": 1e-1,
-  "max_epoch": 30,
+  "max_epoch": 1,
   "early_stop": false,
   "patience": 5,
   "train_batch_size": 3000,
