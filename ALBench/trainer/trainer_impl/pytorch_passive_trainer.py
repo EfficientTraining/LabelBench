@@ -50,7 +50,7 @@ class PyTorchPassiveTrainer(Trainer):
 
         # Check to avoid using customized transform for embedding dataset.
         if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
-            assert self.trainer_config["use_embeddings"] and self.model_config["use_customized_transform"] == False, \
+            assert self.trainer_config["use_embeddings"] and not self.model_config["use_customized_transform"], \
                 "Customized transform is only supported for non-embedding models."
 
         # Get the training dataset and the corresponding dataloader for the non-embedding dataset. 
@@ -61,6 +61,9 @@ class PyTorchPassiveTrainer(Trainer):
             if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
                 transform = model.module.get_preprocess(split="train")
                 train_dataset.set_transform(transform)
+                # Only use labeled examples for training.
+                train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+
 
             # Only use labeled examples for training.
             train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
@@ -73,11 +76,10 @@ class PyTorchPassiveTrainer(Trainer):
 
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             counter = 0
-
+            # Update the embedding dataset for each epoch and get the corresponding subset and dataloader.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
                 self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
-
                 # Only use labeled examples for training.
                 train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
                 loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
@@ -103,7 +105,7 @@ class PyTorchPassiveTrainer(Trainer):
 
                 if scheduler is not None:
                     scheduler(counter)
-                counter += 1
+                counter += len(pred)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -148,7 +150,7 @@ class PyTorchPassiveTrainer(Trainer):
         if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
             transform = model.module.get_preprocess(split="test")
             dataset.set_transform(transform)
-
+            
         loader = DataLoader(dataset, batch_size=self.trainer_config["test_batch_size"], shuffle=False, num_workers=10)
         preds = np.zeros((len(dataset), self.dataset.num_classes), dtype=float)
         labels = np.zeros((len(dataset), self.dataset.num_classes), dtype=float)

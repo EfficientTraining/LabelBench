@@ -82,16 +82,13 @@ class TransformDataset(Dataset):
             x, y = self.dataset[item]
 
         if self.__transform:
-            torch.manual_seed(self.__transform_seed)
-            random.seed(self.__transform_seed)
             x = self.__transform(x)
         if self.__target_transform:
             y = self.__target_transform(y)
         return x, y
 
-    def set_transform(self, transform, seed=42):
+    def set_transform(self, transform):
         self.__transform = transform
-        self.__transform_seed = seed
 
     def set_target_transform(self, target_transform):
         self.__target_transform = target_transform
@@ -110,7 +107,7 @@ class ALDataset:
     """
 
     def __init__(self, train_dataset, val_dataset, test_dataset, train_labels, val_labels, test_labels, label_type,
-                 num_classes, classnames):
+                 num_classes, classnames, train_emb_mean=np.mean, train_emb_std=np.std):
         """
         :param torch.utils.data.Dataset train_dataset: Training dataset that contains both examples and labels.
         :param torch.utils.data.Dataset val_dataset: Validation dataset that contains both examples and labels.
@@ -136,6 +133,8 @@ class ALDataset:
         self.train_emb = None
         self.val_emb = None
         self.test_emb = None
+        self.__train_emb_mean = train_emb_mean
+        self.__train_emb_std = train_emb_std
         self.__labeled_idxs = None
         self.__train_labels = train_labels
         self.__val_labels = val_labels
@@ -169,7 +168,6 @@ class ALDataset:
             self.__labeled_idxs = np.concatenate(
                 (self.__labeled_idxs, np.array(new_idxs)))
 
-
     def get_embedding_datasets(self):
         """
         Construct PyTorch datasets of (embedding, label) pairs for all of training, validation and testing.
@@ -183,11 +181,14 @@ class ALDataset:
             self.__val_labels = self.__val_labels()
         if callable(self.__test_labels):
             self.__test_labels = self.__test_labels()
-        mean = np.mean(self.train_emb, axis=0)
-        std = np.std(self.train_emb, axis=0)
-        return DatasetOnMemory((self.train_emb - mean) / std, self.__train_labels, self.num_classes), \
-            DatasetOnMemory((self.val_emb - mean) / std, self.__val_labels, self.num_classes), \
-            DatasetOnMemory((self.test_emb - mean) / std, self.__test_labels, self.num_classes)
+        # To avoid changing mean and std every time updating an augmented embedding, we will only set them once.
+        if callable(self.__train_emb_mean):
+            self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
+        if callable(self.__train_emb_std):
+            self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
+        return DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std, self.__train_labels, self.num_classes), \
+            DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels, self.num_classes), \
+            DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels, self.num_classes)
     
     def get_embedding_dim(self):
         """Dimension of the embedding."""
