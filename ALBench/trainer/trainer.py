@@ -9,8 +9,8 @@ import ALBench.trainer.trainer_impl
 from ALBench.skeleton.trainer_skeleton import trainers
 
 
-def get_trainer(name, trainer_config, dataset, model_fn, model_config, metric, input_dim):
-    return trainers[name](trainer_config, dataset, model_fn, model_config, metric, input_dim)
+def get_trainer(name, trainer_config, dataset, model_fn, model_config, metric, update_embed_dataset_fn):
+    return trainers[name](trainer_config, dataset, model_fn, model_config, metric, update_embed_dataset_fn)
 
 
 def get_fns(trainer_config):

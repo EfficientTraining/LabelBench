@@ -1,6 +1,7 @@
 {
   "model_name": "shallow",
   "use_customized_transform": false,
+  "num_hidden": 2,
   "pretrain": false,
   "ret_emb": false
 }

@@ -1,13 +1,14 @@
-import copy
 import os
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from numpy import random
 
 
-def get_feature(model, dataset, batch_size, num_workers, file_name, **kwargs):
+
+def get_feature_helper(model, dataset, seed, batch_size, num_workers, file_name):
     if os.path.exists(f'{file_name}_features.pt'):
         print(f"Loading features from {file_name}_features.pt")
         features = torch.load(f'{file_name}_features.pt')
@@ -18,38 +19,39 @@ def get_feature(model, dataset, batch_size, num_workers, file_name, **kwargs):
         counter = 0
 
         print(f"Start extracting features... and save to {file_name}_features.pt")
+        if seed is not None: random.seed(random.RandomState(seed).randint(1000000000))
         for img, _, *other in tqdm(loader):
             img = img.float().cuda()
-            with torch.cuda.amp.autocast():
-                with torch.no_grad():
-                    _, feature = model(img)
+            with torch.cuda.amp.autocast(), torch.no_grad():
+                _, feature = model(img)
             features[counter: (counter + len(feature))] = feature.data.cpu().numpy()
             counter += len(feature)
 
         torch.save(features, f'{file_name}_features.pt', pickle_protocol=4)
-
     return features
 
 
-def update_embed_dataset(model_fn, dataset, file_name, embed_model_config, **kwargs):
+def get_feature(model_fn, dataset, dataset_split, file_name, embed_model_config, epoch):
     # Load the model.
     model = model_fn(embed_model_config, input_dim=None).cuda()
 
-    for i, dataset_split in enumerate(["train", "val", "test"]):
-        cur_dataset = dataset.get_input_datasets()[i]
+    if "use_customized_transform" in embed_model_config and embed_model_config["use_customized_transform"]:
+        # Get model specific transform of dataset.
+        print("Update the transform of dataset to model's special preprocess.")
+        transform = model.get_preprocess(split=dataset_split)
+        num_transform_seeds = \
+            embed_model_config["num_transform_seeds"] if "num_transform_seeds" in embed_model_config else 1
 
-        # Model specific transform of dataset.
-        if "use_customized_transform" in embed_model_config and embed_model_config["use_customized_transform"]:
-            print("Update the transform of dataset to model's special preprocess.")
-            transform = model.get_preprocess(split=dataset_split)
-            cur_dataset.set_transform(transform)
+        # Compute the embedding of dataset using customized transformer.
+        seed = epoch % num_transform_seeds
+        dataset.set_transform(transform)
+        feat_emb = get_feature_helper(model, dataset, seed, batch_size=embed_model_config["inference_batch_size"],
+                                      num_workers=embed_model_config["num_workers"],
+                                      file_name=f"{file_name}_{dataset_split}_{seed}")
+    else:
+        # Compute the embedding of dataset without data augmentation.
+        feat_emb = get_feature_helper(model, dataset, None, batch_size=embed_model_config["inference_batch_size"],
+                                      num_workers=embed_model_config["num_workers"],
+                                      file_name=f"{file_name}_{dataset_split}")
 
-        # Compute the embedding of dataset and add to dataset.
-        feat_emb = get_feature(model, cur_dataset, batch_size=embed_model_config["inference_batch_size"],
-                               num_workers=embed_model_config["num_workers"], file_name=f"{file_name}_{dataset_split}")
-        dataset.update_emb(feat_emb, dataset_split=dataset_split)
-
-    # Update the input dim of the classifier model as the embedding dim.
-    input_dim = feat_emb.shape[1]
-
-    return input_dim
+    return feat_emb

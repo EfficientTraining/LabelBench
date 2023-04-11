@@ -9,7 +9,7 @@ class Trainer:
     Trainer class for training model on given (partially) datasets.
     """
 
-    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, input_dim):
+    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         """
         :param Dict trainer_config: Dictionary of hyper-parameters of the trainer.
         :param ALDataset dataset: An initial ALDataset.
@@ -23,7 +23,8 @@ class Trainer:
         self.model_config = model_config
         self.metric = metric
         self._eval_results = [None for _ in range(12)]
-        self.input_dim = input_dim
+        self.get_feature_fn = get_feature_fn
+        self.input_dim = None
 
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""

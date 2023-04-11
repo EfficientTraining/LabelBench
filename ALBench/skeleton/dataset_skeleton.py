@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from enum import Enum
 from torch.utils.data import Dataset
+from numpy import random
 
 
 class LabelType(Enum):
@@ -34,9 +35,9 @@ class DatasetOnMemory(Dataset):
     """
 
     def __init__(self, X, y, n_class):
+        assert len(X) == len(y), "X and y must have the same length."
         self.X = X
         self.y = y
-        assert len(self.X) == len(self.y)
         self.n_class = n_class
 
     def __len__(self):
@@ -69,6 +70,7 @@ class TransformDataset(Dataset):
         self.__default_transform = transform
         self.__default_target_transform = target_transform
         self.ignore_metadata = ignore_metadata
+        self.__transform_seed = 42
 
     def __len__(self):
         return len(self.dataset)
@@ -105,7 +107,7 @@ class ALDataset:
     """
 
     def __init__(self, train_dataset, val_dataset, test_dataset, train_labels, val_labels, test_labels, label_type,
-                 num_classes, classnames):
+                 num_classes, classnames, train_emb_mean=np.mean, train_emb_std=np.std):
         """
         :param torch.utils.data.Dataset train_dataset: Training dataset that contains both examples and labels.
         :param torch.utils.data.Dataset val_dataset: Validation dataset that contains both examples and labels.
@@ -131,6 +133,8 @@ class ALDataset:
         self.train_emb = None
         self.val_emb = None
         self.test_emb = None
+        self.__train_emb_mean = train_emb_mean
+        self.__train_emb_std = train_emb_std
         self.__labeled_idxs = None
         self.__train_labels = train_labels
         self.__val_labels = val_labels
@@ -138,22 +142,19 @@ class ALDataset:
 
         self.classnames = classnames
 
-    def update_emb(self, emb, dataset_split):
+    def update_embedding_dataset(self, epoch, get_feature_fn):
         """
-        Update with the latest feature embeddings.
+        Update the embedding dataset with the updat_embed_dataset_fn and the current epoch.
 
-        :param numpy.ndarray emb: Embeddings of examples.
-        :param str dataset_split: Split of dataset, can be 'train', 'val' or 'test'.
-        :return:
+        :param int epoch: current epoch, used to update the transform of the dataset.
+        :param callable update_embed_dataset_fn: function to update the embedding dataset.
         """
-        if dataset_split == 'train':
-            self.train_emb = emb
-        elif dataset_split == 'val':
-            self.val_emb = emb
-        elif dataset_split == 'test':
-            self.test_emb = emb
-        else:
-            raise Exception("Unknown dataset split.")
+        assert callable(get_feature_fn), "Update_embed_dataset_fn must be a function."
+
+        for _, dataset_split in enumerate(["train", "val", "test"]):
+            dataset = getattr(self, dataset_split + "_dataset")
+            feat_emb = get_feature_fn(dataset, dataset_split, epoch)
+            setattr(self, dataset_split + "_emb", feat_emb)
 
     def update_labeled_idxs(self, new_idxs):
         """
@@ -180,11 +181,19 @@ class ALDataset:
             self.__val_labels = self.__val_labels()
         if callable(self.__test_labels):
             self.__test_labels = self.__test_labels()
-        mean = np.mean(self.train_emb, axis=0)
-        std = np.std(self.train_emb, axis=0)
-        return DatasetOnMemory((self.train_emb - mean) / std, self.__train_labels, self.num_classes), \
-            DatasetOnMemory((self.val_emb - mean) / std, self.__val_labels, self.num_classes), \
-            DatasetOnMemory((self.test_emb - mean) / std, self.__test_labels, self.num_classes)
+        # To avoid changing mean and std every time updating an augmented embedding, we will only set them once.
+        if callable(self.__train_emb_mean):
+            self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
+        if callable(self.__train_emb_std):
+            self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
+        return DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std, self.__train_labels, self.num_classes), \
+            DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels, self.num_classes), \
+            DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels, self.num_classes)
+    
+    def get_embedding_dim(self):
+        """Dimension of the embedding."""
+        assert self.train_emb is not None, "Embedding is not initialized."
+        return self.train_emb.shape[1] 
 
     def get_input_datasets(self):
         """
