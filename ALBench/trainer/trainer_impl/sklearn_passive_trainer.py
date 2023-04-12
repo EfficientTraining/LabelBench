@@ -13,11 +13,6 @@ class SklearnPassiveTrainer(Trainer):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
 
     def train(self, finetune_model=None, finetune_config=None):
-
-        # Update the embedding dataset once to get the input dimension.
-        self.dataset.update_embedding_dataset(epoch=0, get_feature_fn=self.get_feature_fn)
-        self.input_dim = self.dataset.get_embedding_dim()
-
         train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
 
         if self.metric.metric_name == "multi_class":

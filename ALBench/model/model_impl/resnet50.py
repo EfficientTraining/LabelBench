@@ -35,7 +35,7 @@ class Resnet50(nn.Module):
 
 
 @register_model("resnet50")
-def init_resnet50(model_config, input_dim=None):
+def init_resnet50(model_config):
     return Resnet50(model_config["num_output"],
                     ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False,
                     pretrain=model_config["pretrain"] if "pretrain" in model_config else True)

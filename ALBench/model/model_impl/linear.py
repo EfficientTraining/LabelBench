@@ -16,5 +16,5 @@ class ModifiedLinear(nn.Module):
 
 
 @register_model("linear")
-def init_MLP(model_config, input_dim=None):
-    return ModifiedLinear(input_dim, model_config["num_output"])
+def init_MLP(model_config):
+    return ModifiedLinear(model_config["input_dim"], model_config["num_output"])

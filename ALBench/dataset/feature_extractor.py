@@ -33,7 +33,7 @@ def get_feature_helper(model, dataset, seed, batch_size, num_workers, file_name)
 
 def get_feature(model_fn, dataset, dataset_split, file_name, embed_model_config, epoch):
     # Load the model.
-    model = model_fn(embed_model_config, input_dim=None).cuda()
+    model = model_fn(embed_model_config).cuda()
 
     if "use_customized_transform" in embed_model_config and embed_model_config["use_customized_transform"]:
         # Get model specific transform of dataset.

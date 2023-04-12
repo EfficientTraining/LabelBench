@@ -24,7 +24,6 @@ class Trainer:
         self.metric = metric
         self._eval_results = [None for _ in range(12)]
         self.get_feature_fn = get_feature_fn
-        self.input_dim = None
 
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
