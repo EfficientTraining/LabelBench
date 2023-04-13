@@ -17,8 +17,10 @@ def get_fns(trainer_config):
     assert "loss_fn" in trainer_config, "loss_fn not in trainer config."
     assert "pred_fn" in trainer_config, "pred_fn not in trainer config."
     # Loss function
-    if trainer_config["loss_fn"] == "Binary Cross Entropy":
-        trainer_config["loss_fn"] = F.binary_cross_entropy_with_logits
+    if trainer_config["loss_fn"] == "Binary Cross Entropy Multi Class":
+        trainer_config["loss_fn"] = lambda x, y, weight=None: \
+            F.binary_cross_entropy_with_logits(x[:, 1:2], y[:, 1:2],
+                                               pos_weight=(None if weight is None else (weight[1] / weight[0])))
     elif trainer_config["loss_fn"] == "Cross Entropy":
         trainer_config["loss_fn"] = F.cross_entropy
     elif trainer_config["loss_fn"] == "LabelSmoothingCrossEntropy":
@@ -31,6 +33,8 @@ def get_fns(trainer_config):
     # Prediction function
     if trainer_config["pred_fn"] == "Sigmoid":
         trainer_config["pred_fn"] = torch.sigmoid
+    elif trainer_config["pred_fn"] == "Sigmoid Multi Class":
+        trainer_config["pred_fn"] = lambda x: torch.sigmoid(x[:, 1:2])
     elif trainer_config["pred_fn"] == "Softmax":
         trainer_config["pred_fn"] = lambda x: torch.softmax(x, dim=-1)
 

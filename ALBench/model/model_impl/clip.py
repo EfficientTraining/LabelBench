@@ -55,7 +55,7 @@ class CLIPVisionOnly(nn.Module):
 
 
 @register_model("clip_vitb16")
-def init_clip_viTB16(model_config, input_dim=None):
+def init_clip_viTB16(model_config):
     return CLIPVisionOnly(model_config["num_output"],
                           ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False,
                           pretrain=model_config["pretrain"] if "pretrain" in model_config else True,
@@ -63,7 +63,7 @@ def init_clip_viTB16(model_config, input_dim=None):
 
 
 @register_model("clip_vitb32")
-def init_clip_viTB32(model_config, input_dim=None):
+def init_clip_viTB32(model_config):
     return CLIPVisionOnly(model_config["num_output"],
                           ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False,
                           pretrain=model_config["pretrain"] if "pretrain" in model_config else True,

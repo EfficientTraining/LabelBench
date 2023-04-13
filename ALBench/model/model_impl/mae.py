@@ -201,7 +201,7 @@ class MAEVisionTransformer(timm.models.vision_transformer.VisionTransformer):
 
 
 @register_model("mae_vitb16")
-def init_mae_viTB16(model_config, input_dim=None):
+def init_mae_viTB16(model_config):
     model = MAEVisionTransformer(
         patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_path_rate=0 if model_config["num_output"] == 0 else .1,

@@ -38,7 +38,7 @@ class Resnet18(nn.Module):
 
 
 @register_model("resnet18")
-def init_resnet18(model_config, input_dim=None):
+def init_resnet18(model_config):
     return Resnet18(model_config["num_output"],
                     ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False,
                     pretrain=model_config["pretrain"] if "pretrain" in model_config else True)

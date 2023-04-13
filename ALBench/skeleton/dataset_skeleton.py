@@ -186,14 +186,17 @@ class ALDataset:
             self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
         if callable(self.__train_emb_std):
             self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
-        return DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std, self.__train_labels, self.num_classes), \
-            DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels, self.num_classes), \
-            DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels, self.num_classes)
-    
+        return DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std, self.__train_labels,
+                               self.num_classes), \
+               DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
+                               self.num_classes), \
+               DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
+                               self.num_classes)
+
     def get_embedding_dim(self):
         """Dimension of the embedding."""
         assert self.train_emb is not None, "Embedding is not initialized."
-        return self.train_emb.shape[1] 
+        return self.train_emb.shape[1]
 
     def get_input_datasets(self):
         """
@@ -205,7 +208,7 @@ class ALDataset:
     def __len__(self):
         """Length of the training set."""
         return len(self.train_dataset)
-    
+
     def get_num_classes(self):
         """Number of classes of the dataset."""
         return self.num_classes
@@ -221,3 +224,8 @@ class ALDataset:
     def labeled_idxs(self):
         """Indexes of the labeled examples in chronological order."""
         return np.array(self.__labeled_idxs)
+
+    def get_train_labels(self):
+        if callable(self.__train_labels):
+            self.__train_labels = self.__train_labels()
+        return np.array(self.__train_labels)
