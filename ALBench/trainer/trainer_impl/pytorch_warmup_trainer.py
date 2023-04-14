@@ -11,8 +11,8 @@ from ALBench.skeleton.trainer_skeleton import Trainer
 from ALBench.trainer.utils import EarlyStopping
 
 
-class PyTorchPassiveTrainer(Trainer):
-    trainer_name = "pytorch_passive"
+class PyTorchWarmupTrainer(Trainer):
+    trainer_name = "pytorch_warmup"
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
