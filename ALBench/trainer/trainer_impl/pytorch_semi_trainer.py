@@ -14,6 +14,9 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
+    
+    def train_step(self, img_l, target_l, img_u, target_u):
+        raise NotImplementedError("Subclass does not have implementation of semi-supervised learning training function.")
 
     def train(self, finetune_model=None, finetune_config=None):
         if finetune_model is None:
