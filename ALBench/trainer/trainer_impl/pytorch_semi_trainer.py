@@ -5,12 +5,12 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
-from ALBench.skeleton.trainer_skeleton import Trainer
+from pytorch_passive_trainer import PyTorchPassiveTrainer
 from ALBench.trainer.utils import EarlyStopping
 
 
-class PyTorchPassiveTrainer(Trainer):
-    trainer_name = "pytorch_passive"
+class PyTorchSemiTrainer(PyTorchPassiveTrainer):
+    trainer_name = "pytorch_semi" # TODO: is this being set correctly. Consider setting at flexmatch level, not here at the semi base
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
@@ -28,7 +28,6 @@ class PyTorchPassiveTrainer(Trainer):
         else:
             model = copy.deepcopy(finetune_model).cuda()
 
-        loss_fn = self.trainer_config["loss_fn"]
         max_epoch = self.trainer_config["max_epoch"]
 
         devices = list(range(torch.cuda.device_count()))
@@ -65,28 +64,47 @@ class PyTorchPassiveTrainer(Trainer):
                 self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
 
-            class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
-            class_weights = torch.from_numpy(class_weights).float().cuda()
-            # Only use labeled examples for training.
-            train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
-            loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
+            # TODO: not sure if the weighted case can be incorporated into semiSL, so commenting for now
+            #class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
+            #class_weights = torch.from_numpy(class_weights).float().cuda()
+
+            # Make labeled loader.
+            labeled_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+            labeled_loader = DataLoader(labeled_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
                                 num_workers=self.trainer_config["num_workers"],
-                                drop_last=(len(train_dataset) >= self.trainer_config["train_batch_size"]))
+                                drop_last=(len(labeled_dataset) >= self.trainer_config["train_batch_size"]))
+            
+            # Make unlabeled loader.
+            # TODO: implement dataset.unlabeled_idxs
+            unlabeled_dataset = Subset(train_dataset, self.dataset.unlabeled_idxs())
+            # TODO" implement uratio (unlabeled batch size ratio)
+            unlabeled_loader = DataLoader(unlabeled_dataset, batch_size=self.trainer_config["uratio"]*
+                                self.trainer_config["train_batch_size"], shuffle=True,
+                                num_workers=self.trainer_config["num_workers"],
+                                drop_last=False)
+            unlabeled_iterator = iter(unlabeled_loader) # need to manually mix in unlabeled batches
 
-            for img, target, *other in tqdm(loader, desc="Batch Index"):
-                img, target = img.float().cuda(), target.float().cuda()
+            for img_l, target_l, *other_l in tqdm(labeled_loader, desc="Batch Index"):
 
-                with torch.cuda.amp.autocast():
-                    if not self.model_config["ret_emb"]:
-                        pred = model(img, ret_features=False).squeeze(-1)
-                    else:
-                        pred, _ = model(img, ret_features=True)
-                        pred = pred.squeeze(-1)
+                # Get unlabeled batch.
+                # https://stackoverflow.com/questions/51444059/how-to-iterate-over-two-dataloaders-simultaneously-using-pytorch
+                # https://github.com/pytorch/pytorch/issues/1917#issuecomment-433698337
+                # Alternative is to zip loaders as in:
+                #     https://github.com/microsoft/Semi-supervised-learning/blob/
+                #     9a24e00db040443b4b8d13ecb556b6948c56d15e/semilearn/core/algorithmbase.py#L301
+                # But zipping stops at the shortest loader, which can create problems towards the end of active training
+                # when unlabeled set is smaller than labeled set
+                try:
+                    img_u, target_u, *other_u = next(unlabeled_iterator)
+                except StopIteration:
+                    unlabeled_iterator = iter(unlabeled_loader)
+                    img_u, target_u, *other_u = next(unlabeled_iterator)
 
-                    if "weighted" in self.trainer_config and self.trainer_config["weighted"]:
-                        loss = loss_fn(pred, target, weight=class_weights)
-                    else:
-                        loss = loss_fn(pred, target)
+                img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
+                img_u, target_u = img_u.float().cuda(), target_u.float().cuda()
+
+                # TODO: make train_step interface above
+                loss = self.train_step(img_l, target_l, img_u, target_u)
 
                 if scheduler is not None:
                     scheduler(counter)
@@ -107,52 +125,3 @@ class PyTorchPassiveTrainer(Trainer):
                     print("Early stopping.")
                     break
         return model
-
-    def _test(self, dataset_split, model, **kwargs):
-        model.eval()
-        if "mc_dropout" in kwargs and kwargs["mc_dropout"]:
-            for m in model.modules():
-                if isinstance(m, nn.Dropout):
-                    m.train()
-
-        if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-            datasets = self.dataset.get_embedding_datasets()
-            assert all(dataset is not None for dataset in datasets), "Embedding features not found."
-        else:
-            datasets = self.dataset.get_input_datasets()
-
-        if dataset_split == "train":
-            dataset = datasets[0]
-        elif dataset_split == "val":
-            dataset = datasets[1]
-        elif dataset_split == "test":
-            dataset = datasets[2]
-
-        # If clip model, we need to update the transform of dataset.
-        if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
-            transform = model.module.get_preprocess(split="test")
-            dataset.set_transform(transform)
-
-        loader = DataLoader(dataset, batch_size=self.trainer_config["test_batch_size"], shuffle=False, num_workers=10)
-        preds = np.zeros((len(dataset), self.dataset.num_classes), dtype=float)
-        labels = np.zeros((len(dataset), self.dataset.num_classes), dtype=float)
-        losses = np.zeros(len(dataset), dtype=float)
-        embs = []
-        counter = 0
-        for img, target in loader:
-            img, target = img.float().cuda(), target.float().cuda()
-            with torch.no_grad(), torch.cuda.amp.autocast():
-                if not self.model_config["ret_emb"]:
-                    pred = model(img)
-                else:
-                    pred, emb = model(img, ret_features=True)
-                    embs.append(emb.cpu().numpy())
-                pred = pred.squeeze(-1)
-                loss = self.trainer_config["loss_fn"](pred, target)
-            preds[counter: (counter + len(pred))] = self.trainer_config["pred_fn"](pred).cpu().numpy()
-            labels[counter: (counter + len(pred))] = target.cpu().numpy()
-            losses[counter: (counter + len(pred))] = loss.cpu().numpy()
-            counter += len(pred)
-        assert counter == len(preds)
-        model.train()
-        return preds, labels, losses, np.concatenate(embs, axis=0) if len(embs) > 0 else None
