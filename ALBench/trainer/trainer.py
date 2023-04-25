@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam, SGD, AdamW
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from timm.loss import LabelSmoothingCrossEntropy
 
 import ALBench.trainer.trainer_impl
@@ -82,9 +83,13 @@ def get_optimizer_fn(trainer_config):
 def get_scheduler_fn(trainer_config):
     if "scheduler_name" in trainer_config:
         if trainer_config["scheduler_name"] == "CosineLR":
+            # def scheduler_fn(optimizer, total_steps):
+            #     return cosine_lr(optimizer, base_lrs=trainer_config["lr"], warmup_length=trainer_config["warmup_steps"],
+            #                      steps=total_steps)
             def scheduler_fn(optimizer, total_steps):
-                return cosine_lr(optimizer, base_lrs=trainer_config["lr"], warmup_length=trainer_config["warmup_steps"],
-                                 steps=total_steps)
+                return CosineAnnealingWarmRestarts(optimizer, T_0=trainer_config["warmup_steps"], 
+                                                   T_mult=trainer_config["T_multi"] if "T_multi" in trainer_config else 2,
+                                                   eta_min=trainer_config["eta_min"] if "eta_min" in trainer_config else 0)
         elif trainer_config["scheduler_name"] == "StepLR":
             def scheduler_fn(optimizer, total_steps):
                 return step_lr(optimizer, base_lr=trainer_config["lr"], step_size=trainer_config["step_size"],
@@ -95,6 +100,9 @@ def get_scheduler_fn(trainer_config):
         trainer_config["scheduler_fn"] = scheduler_fn
 
     return trainer_config
+
+
+
 
 
 # Modified cosine_lr functions, copy from https://github.com/mlfoundations/wise-ft/blob/master/src/models/utils.py.

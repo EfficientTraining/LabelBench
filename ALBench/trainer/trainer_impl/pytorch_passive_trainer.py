@@ -38,7 +38,7 @@ class PyTorchPassiveTrainer(Trainer):
         params = [p for p in model.parameters() if p.requires_grad]
 
         optimizer = self.trainer_config["optim_fn"](params)
-        total_steps = self.trainer_config["max_epoch"] * len(self.dataset) // self.trainer_config["train_batch_size"]
+        total_steps = self.trainer_config["max_epoch"] * len(self.dataset.labeled_idxs()) // self.trainer_config["train_batch_size"]
         scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
             if "scheduler_fn" in self.trainer_config else None
 
@@ -55,8 +55,9 @@ class PyTorchPassiveTrainer(Trainer):
                 train_dataset.set_transform(transform)
 
         # initialize the early_stopping object
-        early_stopping = EarlyStopping(
-            patience=self.trainer_config["patience"] if "patience" in self.trainer_config else None, verbose=True)
+        if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+            early_stopping = EarlyStopping(
+                patience=self.trainer_config["patience"] if "patience" in self.trainer_config else 5, verbose=True)
 
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
@@ -68,13 +69,14 @@ class PyTorchPassiveTrainer(Trainer):
             class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
             class_weights = torch.from_numpy(class_weights).float().cuda()
             # Only use labeled examples for training.
-            train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
-            loader = DataLoader(train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
+            cur_train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+            loader = DataLoader(cur_train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
                                 num_workers=self.trainer_config["num_workers"],
                                 drop_last=(len(train_dataset) >= self.trainer_config["train_batch_size"]))
 
             for img, target, *other in tqdm(loader, desc="Batch Index"):
                 img, target = img.float().cuda(), target.float().cuda()
+                
 
                 with torch.cuda.amp.autocast():
                     if not self.model_config["ret_emb"]:
@@ -89,7 +91,10 @@ class PyTorchPassiveTrainer(Trainer):
                         loss = loss_fn(pred, target)
 
                 if scheduler is not None:
-                    scheduler(counter)
+                    try:
+                        scheduler(counter)
+                    except:
+                        scheduler.step(counter)
                     counter += 1
                 optimizer.zero_grad()
                 loss.backward()
