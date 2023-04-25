@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam, SGD, AdamW
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from timm.loss import LabelSmoothingCrossEntropy
 
 import ALBench.trainer.trainer_impl
@@ -95,6 +96,9 @@ def get_scheduler_fn(trainer_config):
         trainer_config["scheduler_fn"] = scheduler_fn
 
     return trainer_config
+
+
+
 
 
 # Modified cosine_lr functions, copy from https://github.com/mlfoundations/wise-ft/blob/master/src/models/utils.py.

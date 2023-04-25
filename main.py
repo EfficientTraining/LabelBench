@@ -92,6 +92,7 @@ if __name__ == "__main__":
     strategy = get_strategy(strategy_config["strategy_name"], strategy_config, dataset)
 
     # Active learning loop.
+    print(len(dataset))
     for idx in range(1, num_batch + 1):
         if idx == 1:
             # Initial seed set use random sampling.
