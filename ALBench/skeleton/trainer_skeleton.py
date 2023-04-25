@@ -12,29 +12,35 @@ class Trainer:
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         """
         :param Dict trainer_config: Dictionary of hyper-parameters of the trainer.
+        
             trainer_name str: Name of the trainer. 
             use_embeddings bool: Whether to use embeddings for training or use the original data. If not specified, default value is False.
             loss_fn str: Name of the loss function for training. 
             predict_fn str: Name of the prediction function for training. 
             optim_name str: Name of the optimizer for training. 
+
             Optimizer:
             lr float: Learning rate for the optimizer.
             wd float: Weight decay for the optimizer (e.g. Adam, AdamW). Default: 0.
             betas float: Betas for the optimizer (e.g. Adam, AdamW). Default: None.
             momentum float: Momentum for the optimizer (e.g. SGD). Default: 0.
             nesterov bool: Whether to use nesterov for the optimizer (e.g. SGD). Default: False.
+
             max_epoch int: Maximum number of epochs for training.
             train_batch_size int: Batch size for training.
             test_batch_size int: Batch size for testing.
             num_workers int: Number of workers for training.
             scheduler_name str: Name of the scheduler for training.  Default: None.
+
             Learning rate scheduler:
             step_size int: Step size for some scheduler. (e.g. StepLR). Remember to set the scheduler name first.
             gamma float: Gamma for some scheduler. (e.g. StepLR) Remember to set the scheduler name first.
             warmup_steps int: Warmup steps for some schedulers (e.g. CosineLR). Default: 500. Remember to set the scheduler name first.
             early_stop bool: Whether to use early stopping for training. Default: False.
+
             Early stopping controller:
             patience int: Patience for early stopping. Default: 5.
+
         :param ALDataset dataset: An initial ALDataset.
         :param model_fn: Function for instantiating a model.
         :param Dict model_config: Dictionary of hyper-parameters for instantiating a model.
