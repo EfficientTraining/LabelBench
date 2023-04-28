@@ -15,7 +15,7 @@ class CLIPVisionOnly(nn.Module):
         assert pretrain, "CLIPVisionOnly only support pretrain model"
 
         model, preprocess = clip.load(model_name)
-        self.image_encoder_model = model.float() # Convert to float to avoid NAN loss when using AdamW.
+        self.image_encoder_model = model.float()  # Convert to float to avoid NAN loss when using AdamW.
         self.embed_dim = model.state_dict()["text_projection"].shape[1]
         self.preprocess_transform = preprocess
         self.ret_emb = ret_emb
@@ -24,8 +24,6 @@ class CLIPVisionOnly(nn.Module):
         # Set num_output to 0 to return the embedding.
         if num_output != 0:
             self.classifier = nn.Linear(self.embed_dim, num_output)
-            print("Initialize CLIP_VisionOnly with default linear head. "
-                  "Recommend to initialize the head using zero-shot classifier params.")
         else:
             self.classifier = nn.Identity()
 
@@ -44,7 +42,7 @@ class CLIPVisionOnly(nn.Module):
             return self.classifier(features)
 
     def init_head_withzeroshot(self, classnames, template):
-        self.classifier = get_zeroshot_classifier(self.image_encoder_model, classnames, template)
+        self.classifier = get_zeroshot_classifier(self.image_encoder_model, clip.tokenize, classnames, template)
         print("Update the head initialization using zero-shot classifier params.")
 
     def get_embedding_dim(self):

@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import pairwise_distances, pairwise_distances_chunked
+from tqdm import tqdm
 
 from ALBench.skeleton.active_learning_skeleton import Strategy, ALInput
 
@@ -33,7 +34,7 @@ class CoresetSampling(Strategy):
 
         idxs = []
 
-        for i in range(n):
+        for i in tqdm(range(n)):
             idx = min_dist.argmax()
             idxs.append(idx)
             dist_new_ctr = pairwise_distances(X, X[[idx], :])
