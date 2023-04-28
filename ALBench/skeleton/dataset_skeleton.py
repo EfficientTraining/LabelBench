@@ -71,7 +71,6 @@ class TransformDataset(Dataset):
         self.__default_transform = transform
         self.__default_target_transform = target_transform
         self.ignore_metadata = ignore_metadata
-        self.__transform_seed = 42
 
     def __len__(self):
         return len(self.dataset)

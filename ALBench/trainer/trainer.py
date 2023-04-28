@@ -83,7 +83,7 @@ def get_scheduler_fn(trainer_config):
     if "scheduler_name" in trainer_config:
         if trainer_config["scheduler_name"] == "CosineLR":
             def scheduler_fn(optimizer, total_steps):
-                return cosine_lr(optimizer, base_lrs=trainer_config["lr"], warmup_length=trainer_config["warmup_steps"],
+                return cosine_lr(optimizer, base_lrs=trainer_config["lr"], warmup_length=trainer_config["warmup_steps"] if "warmup_steps" in trainer_config else 500,
                                  steps=total_steps)
         elif trainer_config["scheduler_name"] == "StepLR":
             def scheduler_fn(optimizer, total_steps):

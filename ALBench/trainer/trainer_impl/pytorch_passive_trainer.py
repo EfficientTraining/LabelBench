@@ -55,8 +55,11 @@ class PyTorchPassiveTrainer(Trainer):
                 train_dataset.set_transform(transform)
 
         # initialize the early_stopping object
-        early_stopping = EarlyStopping(
-            patience=self.trainer_config["patience"] if "patience" in self.trainer_config else None, verbose=True)
+        if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+            early_stopping = EarlyStopping(
+                patience=self.trainer_config["patience"] if "patience" in self.trainer_config else 5, verbose=True)
+        else:
+            early_stopping = None
 
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
@@ -97,7 +100,7 @@ class PyTorchPassiveTrainer(Trainer):
                     nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
                 optimizer.step()
 
-            if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+            if early_stopping is not None:
                 # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
                 # checkpoint of the current model.
                 _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
