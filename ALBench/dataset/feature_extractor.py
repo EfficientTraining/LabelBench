@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from numpy import random
 
-
+# TODO: need to make my semiSL updates in this file
 
 def get_feature_helper(model, dataset, seed, batch_size, num_workers, file_name):
     if os.path.exists(f'{file_name}_features.pt'):
@@ -39,6 +39,9 @@ def get_feature(model_fn, dataset, dataset_split, file_name, embed_model_config,
         # Get model specific transform of dataset.
         print("Update the transform of dataset to model's special preprocess.")
         transform = model.get_preprocess(split=dataset_split)
+
+        # TODO: check if weak/strong transformations in transform, and insert if not
+
         num_transform_seeds = \
             embed_model_config["num_transform_seeds"] if "num_transform_seeds" in embed_model_config else 1
 

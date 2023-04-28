@@ -25,6 +25,7 @@ class Trainer:
         self._eval_results = [None for _ in range(12)]
         self.get_feature_fn = get_feature_fn
 
+    # TODO: check if this is implemented properly for semiSL methods
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
         super().__init_subclass__(**kwargs)

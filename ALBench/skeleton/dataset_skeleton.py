@@ -66,6 +66,7 @@ class TransformDataset(Dataset):
     def __init__(self, dataset, transform=None, target_transform=None, ignore_metadata=False):
         self.dataset = dataset
         self.__transform = transform
+        self.__strong_transform = None
         self.__target_transform = target_transform
         self.__default_transform = transform
         self.__default_target_transform = target_transform
@@ -85,10 +86,19 @@ class TransformDataset(Dataset):
             x = self.__transform(x)
         if self.__target_transform:
             y = self.__target_transform(y)
+        if self.__strong_transform:
+            xs = self.__strong_transform(x)
+            return x, y, xs
         return x, y
 
+    def get_transform(self):
+        return self.__transform
+    
     def set_transform(self, transform):
         self.__transform = transform
+
+    def set_strong_stransform(self, strong_transform):
+        self.__strong_transform = strong_transform
 
     def set_target_transform(self, target_transform):
         self.__target_transform = target_transform

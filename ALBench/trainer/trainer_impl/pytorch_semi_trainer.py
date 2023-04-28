@@ -8,17 +8,25 @@ from tqdm import tqdm
 from pytorch_passive_trainer import PyTorchPassiveTrainer
 from ALBench.trainer.utils import EarlyStopping
 
+def make_semi_transforms(transform):
+    # return two transforms, one weak called transform_weak and one strong called transform_strong, as follows: first, examine if transform contains any random data augmentations. If not, inject a random data augmentation into transform. This new transform is transform_weak. Then, for transform_strong, inject a strong data augmentation. If
+
 
 class PyTorchSemiTrainer(PyTorchPassiveTrainer):
     trainer_name = "pytorch_semi" # TODO: is this being set correctly. Consider setting at flexmatch level, not here at the semi base
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
+        self.use_strong = None # (bool) flag if semi-supervised method needs strong data augmentation. Must be implemented by subclass
     
     def train_step(self, img_l, target_l, img_u, target_u):
         raise NotImplementedError("Subclass does not have implementation of semi-supervised learning training function.")
 
     def train(self, finetune_model=None, finetune_config=None):
+
+        if self.use_strong is None:
+            raise NotImplementedError("Subclass does not specify strong transformation use in use_strong.")
+        
         if finetune_model is None:
             model = self.model_fn(self.model_config)
             if "template" in self.model_config:
@@ -54,7 +62,15 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
             train_dataset, _, _ = self.dataset.get_input_datasets()
             if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
                 transform = model.module.get_preprocess(split="train")
-                train_dataset.set_transform(transform)
+            else:
+                transform = train_dataset.get_transform()
+
+            # TODO: implement process_transform. Should return copies, inject randomness if none present, and strong transform in strong copy
+            transform_weak, transform_strong = make_semi_transforms(transform)
+            train_dataset.set_transform(transform)
+            if self.use_strong:
+                assert transform_strong is not None, "Strong transform cannot be None"
+                train_dataset.set_strong_transform(transform_strong)
 
         # initialize the early_stopping object
         early_stopping = EarlyStopping(
@@ -66,6 +82,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
                 self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
+                # TODO: need to do here, what I did above
 
             # TODO: not sure if the weighted case can be incorporated into semiSL, so commenting for now
             #class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
@@ -97,17 +114,23 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                 #     9a24e00db040443b4b8d13ecb556b6948c56d15e/semilearn/core/algorithmbase.py#L301
                 # But zipping stops at the shortest loader, which can create problems towards the end of active training
                 # when unlabeled set is smaller than labeled set
+
                 try:
-                    img_u, target_u, *other_u = next(unlabeled_iterator)
+                    img_uw, _, *other_uw = next(unlabeled_iterator)
                 except StopIteration:
                     unlabeled_iterator = iter(unlabeled_loader)
-                    img_u, target_u, *other_u = next(unlabeled_iterator)
+                    img_uw, _, *other_uw = next(unlabeled_iterator)
+
 
                 img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
-                img_u, target_u = img_u.float().cuda(), target_u.float().cuda()
+                img_u = img_u.float().cuda()
 
-                # TODO: make train_step interface above
-                loss = self.train_step(img_l, target_l, img_u, target_u)
+                if len(other_uw) > 0:
+                    img_us = other_uw[0].float.cuda()
+                else:
+                    img_us = None
+
+                loss = self.train_step(img_l, target_l, img_uw, img_us)
 
                 if scheduler is not None:
                     scheduler(counter)
