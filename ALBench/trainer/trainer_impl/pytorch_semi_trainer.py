@@ -4,12 +4,26 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
+from torchvision import transforms
 
 from pytorch_passive_trainer import PyTorchPassiveTrainer
 from ALBench.trainer.utils import EarlyStopping
+from ALBench.trainer.trainer_impl.semi_algs.randaugment import RandAugment
 
 def make_semi_transforms(transform):
-    # return two transforms, one weak called transform_weak and one strong called transform_strong, as follows: first, examine if transform contains any random data augmentations. If not, inject a random data augmentation into transform. This new transform is transform_weak. Then, for transform_strong, inject a strong data augmentation. If
+    # FIXME: for now, just returning transform_weak as the original transform itself. Can inject additional randomness later if needed
+    transform_weak = transform
+
+    # instantiate transform_strong as a copy of transform
+    transform_strong = copy.deepcopy(transform)
+
+    # FIXME: this will break if transform is just a single transform instead of a composition. also assumes that ToTensor is in the transform
+    for i, t in enumerate(transform_strong.transforms):
+        if isinstance(t, transforms.ToTensor):
+            # based on strong augmentation used in https://github.com/microsoft/Semi-supervised-learning
+            transform_strong.transforms.insert(i-1, RandAugment(3, 5))
+
+    return transform_weak, transform_strong
 
 
 class PyTorchSemiTrainer(PyTorchPassiveTrainer):
@@ -65,9 +79,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
             else:
                 transform = train_dataset.get_transform()
 
-            # TODO: implement process_transform. Should return copies, inject randomness if none present, and strong transform in strong copy
             transform_weak, transform_strong = make_semi_transforms(transform)
-            train_dataset.set_transform(transform)
+            train_dataset.set_transform(transform_weak)
             if self.use_strong:
                 assert transform_strong is not None, "Strong transform cannot be None"
                 train_dataset.set_strong_transform(transform_strong)
@@ -80,13 +93,14 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-                self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
-                train_dataset, _, _ = self.dataset.get_embedding_datasets()
-                # TODO: need to do here, what I did above
 
-            # TODO: not sure if the weighted case can be incorporated into semiSL, so commenting for now
-            #class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
-            #class_weights = torch.from_numpy(class_weights).float().cuda()
+                # FIXME:
+                raise ValueError("use_embeddings not yet implemented for semiSL.")
+                #self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
+                #train_dataset, _, _ = self.dataset.get_embedding_datasets()
+
+            class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
+            class_weights = torch.from_numpy(class_weights).float().cuda()
 
             # Make labeled loader.
             labeled_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
@@ -95,9 +109,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                                 drop_last=(len(labeled_dataset) >= self.trainer_config["train_batch_size"]))
             
             # Make unlabeled loader.
-            # TODO: implement dataset.unlabeled_idxs
             unlabeled_dataset = Subset(train_dataset, self.dataset.unlabeled_idxs())
-            # TODO" implement uratio (unlabeled batch size ratio)
             unlabeled_loader = DataLoader(unlabeled_dataset, batch_size=self.trainer_config["uratio"]*
                                 self.trainer_config["train_batch_size"], shuffle=True,
                                 num_workers=self.trainer_config["num_workers"],
@@ -121,16 +133,17 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                     unlabeled_iterator = iter(unlabeled_loader)
                     img_uw, _, *other_uw = next(unlabeled_iterator)
 
-
                 img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
-                img_u = img_u.float().cuda()
+                img_uw = img_uw.float().cuda()
 
                 if len(other_uw) > 0:
                     img_us = other_uw[0].float.cuda()
                 else:
                     img_us = None
 
-                loss = self.train_step(img_l, target_l, img_uw, img_us)
+                with torch.cuda.amp.autocast():
+                    # TODO: need unlabeled indices idx_u
+                    loss = self.train_step(model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us)
 
                 if scheduler is not None:
                     scheduler(counter)

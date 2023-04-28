@@ -1,0 +1,14 @@
+{
+  "trainer_name": "pytorch_semi",
+  "use_embeddings": false,
+  "loss_fn": "Cross Entropy",
+  "pred_fn": "Softmax",
+  "optim_name": "Adam",
+  "wd": 5e-5,
+  "lr": 1e-3,
+  "max_epoch": 10,
+  "train_batch_size": 100,
+  "test_batch_size": 100,
+  "num_workers": 10,
+  "uratio": 7
+}
