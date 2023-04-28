@@ -53,6 +53,7 @@ if __name__ == "__main__":
     with open(os.path.join("./configs/trainer", args.trainer_config), "r") as f:
         trainer_config = json.load(f)
 
+    # os.environ["WANDB_SILENT"] = "true"
     run_name = "%s, embed_model = %s, classifier_model=%s" % (
         strategy_config["strategy_name"], embed_model_config["model_name"], classifier_model_config["model_name"])
     wandb.init(project="Active Learning, %s, Batch Size=%d" % (dataset_name, batch_size), entity=wandb_name,

@@ -14,6 +14,8 @@ class SklearnWarmupTrainer(Trainer):
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
         self.file_name = "sklearn_warmup_checkpoint.pickle"
+        if os.path.exists(self.file_name):
+            os.remove(self.file_name)
 
     def train(self, finetune_model=None, finetune_config=None):
         train_dataset, val_dataset, test_dataset = self.dataset.get_embedding_datasets()
@@ -26,6 +28,7 @@ class SklearnWarmupTrainer(Trainer):
                                             max_iter=self.trainer_config["max_iter"], verbose=1)
 
             if os.path.exists(self.file_name):
+                print(f"load warmup model")
                 with open(self.file_name, "rb") as handle:
                     learned_coeffs = pickle.load(handle)
                 classifier.coef_ = learned_coeffs["coef"]

@@ -23,9 +23,16 @@ class PyTorchWarmupTrainer(Trainer):
     def train(self, finetune_model=None, finetune_config=None):
 
         if os.path.exists(self.file_name):
+            print(f"load warmup model")
             model = self.model_fn(self.model_config)
-            model.load_state_dict(torch.load(self.file_name))
+            state_dict = torch.load(self.file_name)
+            remove_prefix = 'module.'
+            state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in
+                          state_dict.items()}
+            model.load_state_dict(state_dict)
             model = model.cuda()
+            model.train()
+
         elif finetune_model is None:
             model = self.model_fn(self.model_config)
             if "template" in self.model_config:
@@ -119,6 +126,7 @@ class PyTorchWarmupTrainer(Trainer):
         if os.path.exists(self.file_name):
             os.remove(self.file_name)
         torch.save(model.state_dict(), self.file_name)
+        print(f"save trained model")
         return model
 
     def _test(self, dataset_split, model, **kwargs):
