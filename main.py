@@ -24,7 +24,6 @@ if __name__ == "__main__":
     parser.add_argument("--num_batch", type=int, help="Number of batches of collected labels.")
     parser.add_argument("--embed_model_config", type=str, help="Path to the encoder model configuration file.",
                         default="none.json")
-    # TODO: add semisupervised learning parameters to appropriate configuration file
     parser.add_argument("--classifier_model_config", type=str, help="Path to model configuration file.")
     parser.add_argument("--strategy_config", type=str, help="Path to AL strategy configuration file.")
     parser.add_argument("--trainer_config", type=str, help="Path to trainer configuration file.")
@@ -71,7 +70,6 @@ if __name__ == "__main__":
         file_name = "{}/{}_{}".format(folder_name, dataset_name, embed_model_config["model_name"])
         classifier_model_config["input_dim"] = embed_model_fn(embed_model_config).get_embedding_dim()
 
-        # TODO: need to implement semiSL transforms that I need
         def get_feature_fn(dataset, dataset_split, epoch):
             return get_feature(embed_model_fn, dataset, dataset_split, file_name, embed_model_config, epoch)
     else:
@@ -81,7 +79,6 @@ if __name__ == "__main__":
     metric = get_metric(metric_name)
 
     # Construct model if not linear.
-    # FIXME: what if embed_model_config["model_name"] == "none", will there be a bug here?
     model_fn = get_model_fn(classifier_model_config["model_name"])  # Embed model or training model.
 
     # Construct trainer.

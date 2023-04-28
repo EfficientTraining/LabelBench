@@ -236,7 +236,7 @@ class ALDataset:
     
     def unlabeled_idxs(self):
         """Indexes of the unlabeled examples."""
-        # TODO: test
+        # TODO: test this
         labeled_set = set(list(self.labeled_idxs()))
         all_set = set(list(range(self.__len__())))
         return np.array(list(all_set - labeled_set))

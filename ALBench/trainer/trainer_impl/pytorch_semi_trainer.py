@@ -11,7 +11,7 @@ from ALBench.trainer.utils import EarlyStopping
 from ALBench.trainer.trainer_impl.semi_algs.randaugment import RandAugment
 
 def make_semi_transforms(transform):
-    # FIXME: for now, just returning transform_weak as the original transform itself. Can inject additional randomness later if needed
+    # TODO: for now, just returning transform_weak as the original transform itself. Can inject additional randomness later if needed
     transform_weak = transform
 
     # instantiate transform_strong as a copy of transform
@@ -53,6 +53,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         else:
             model = copy.deepcopy(finetune_model).cuda()
 
+        loss_fn = self.trainer_config["loss_fn"]
         max_epoch = self.trainer_config["max_epoch"]
 
         devices = list(range(torch.cuda.device_count()))

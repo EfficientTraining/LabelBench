@@ -1,5 +1,5 @@
 {
-  "trainer_name": "pytorch_semi",
+  "trainer_name": "flexmatch",
   "use_embeddings": false,
   "loss_fn": "Cross Entropy",
   "pred_fn": "Softmax",
@@ -10,5 +10,6 @@
   "train_batch_size": 100,
   "test_batch_size": 100,
   "num_workers": 10,
-  "uratio": 7
+  "uratio": 7,
+  "p_cutoff": 0.95
 }
