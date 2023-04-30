@@ -124,7 +124,7 @@ class PyTorchPassiveTrainer(Trainer):
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break
-
+                
         return model
 
     def _test(self, dataset_split, model, **kwargs):

@@ -34,15 +34,11 @@ class DatasetOnMemory(Dataset):
     A PyTorch dataset where all data lives on CPU memory.
     """
 
-    def __init__(self, X, y, n_class, meta_data=None):
+    def __init__(self, X, y, n_class):
         assert len(X) == len(y), "X and y must have the same length."
         self.X = X
         self.y = y
         self.n_class = n_class
-
-        if meta_data is not None:
-            assert len(X) == len(meta_data), "X and y must have the same length."
-        self.meta_data = meta_data
 
     def __len__(self):
         return len(self.y)
@@ -110,8 +106,7 @@ class ALDataset:
     """
 
     def __init__(self, train_dataset, val_dataset, test_dataset, train_labels, val_labels, test_labels, label_type,
-                 num_classes, classnames, train_emb_mean=np.mean, train_emb_std=np.std,
-                train_weak_labels=None, val_weak_labels=None, test_weak_labels=None):
+                 num_classes, classnames, train_emb_mean=np.mean, train_emb_std=np.std):
         """
         :param torch.utils.data.Dataset train_dataset: Training dataset that contains both examples and labels.
         :param torch.utils.data.Dataset val_dataset: Validation dataset that contains both examples and labels.
@@ -143,9 +138,6 @@ class ALDataset:
         self.__train_labels = train_labels
         self.__val_labels = val_labels
         self.__test_labels = test_labels
-        self.__train_weak_labels = train_weak_labels
-        self.__val_weak_labels =  val_weak_labels
-        self.__test_weak_labels =  test_weak_labels
 
         self.classnames = classnames
 
@@ -188,23 +180,17 @@ class ALDataset:
             self.__val_labels = self.__val_labels()
         if callable(self.__test_labels):
             self.__test_labels = self.__test_labels()
-        if callable(self.__train_weak_labels):
-            self.__train_weak_labels = self.__train_weak_labels()
-        if callable(self.__val_weak_labels):
-            self.__val_weak_labels = self.__val_weak_labels()
-        if callable(self.__test_weak_labels):
-            self.__test_weak_labels = self.__test_weak_labels()
         # To avoid changing mean and std every time updating an augmented embedding, we will only set them once.
         if callable(self.__train_emb_mean):
             self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
         if callable(self.__train_emb_std):
             self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
         return DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std, self.__train_labels,
-                               self.num_classes, self.__train_weak_labels), \
+                               self.num_classes), \
                DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
-                               self.num_classes, self.__val_weak_labels), \
+                               self.num_classes), \
                DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
-                               self.num_classes, self.__test_weak_labels)
+                               self.num_classes)
 
     def get_embedding_dim(self):
         """Dimension of the embedding."""
