@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.optim import Adam, SGD, AdamW
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from timm.loss import LabelSmoothingCrossEntropy
+from timm.data.mixup import Mixup
 
 import ALBench.trainer.trainer_impl
 from ALBench.skeleton.trainer_skeleton import trainers
@@ -38,6 +39,19 @@ def get_fns(trainer_config):
         trainer_config["pred_fn"] = lambda x: torch.sigmoid(x[:, 1:2])
     elif trainer_config["pred_fn"] == "Softmax":
         trainer_config["pred_fn"] = lambda x: torch.softmax(x, dim=-1)
+
+    # Mixup function
+    mixup_active = "mixup" in trainer_config and trainer_config["mixup"] > 0. or \
+                     "cutmix" in trainer_config and trainer_config["cutmix"] > 0. 
+    # Note we put label smoothing to 0.0 here because it is already done in the loss function.
+    def mixup_fn(num_classes):
+        if mixup_active:
+            return Mixup(mixup_alpha=trainer_config["mixup"] if "mixup" in trainer_config else 0., 
+                            cutmix_alpha=trainer_config["cutmix"] if "cutmix" in trainer_config else 0., 
+                            label_smoothing=0.0, num_classes=num_classes)
+        else:
+            return None
+    trainer_config["mixup_fn"] = mixup_fn
 
     return trainer_config
 
@@ -84,7 +98,13 @@ def get_scheduler_fn(trainer_config):
     if "scheduler_name" in trainer_config:
         if trainer_config["scheduler_name"] == "CosineLR":
             def scheduler_fn(optimizer, total_steps):
-                return cosine_lr(optimizer, base_lrs=trainer_config["lr"], warmup_length=trainer_config["warmup_steps"] if "warmup_steps" in trainer_config else 500,
+                return CosineAnnealingWarmRestarts(optimizer, T_0=trainer_config["warmup_steps"], 
+                                                   T_mult=trainer_config["T_multi"] if "T_multi" in trainer_config else 2,
+                                                   eta_min=trainer_config["eta_min"] if "eta_min" in trainer_config else 0)
+        # Use the customized cosine lr scheduler in wise-FT. (A special case of CosineLR)
+        elif trainer_config["scheduler_name"] == "customized_CosineLR":
+            def scheduler_fn(optimizer, total_steps):
+                return cosine_lr(optimizer, base_lrs=trainer_config["lr"], warmup_length=trainer_config["warmup_steps"],
                                  steps=total_steps)
         elif trainer_config["scheduler_name"] == "StepLR":
             def scheduler_fn(optimizer, total_steps):
