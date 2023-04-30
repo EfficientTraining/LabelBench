@@ -15,7 +15,7 @@ class CLIPVisionOnly(nn.Module):
         assert pretrain, "CLIPVisionOnly only support pretrain model"
 
         model, preprocess = clip.load(model_name)
-        self.image_encoder_model = model
+        self.image_encoder_model = model.float() # Convert to float to avoid NAN loss when using AdamW.
         self.embed_dim = model.state_dict()["text_projection"].shape[1]
         self.preprocess_transform = preprocess
         self.ret_emb = ret_emb

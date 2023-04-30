@@ -29,6 +29,7 @@ class PyTorchPassiveTrainer(Trainer):
             model = copy.deepcopy(finetune_model).cuda()
 
         loss_fn = self.trainer_config["loss_fn"]
+        mixup_fn = self.trainer_config["mixup_fn"](self.dataset.num_classes) 
         max_epoch = self.trainer_config["max_epoch"]
 
         devices = list(range(torch.cuda.device_count()))
@@ -75,20 +76,31 @@ class PyTorchPassiveTrainer(Trainer):
                                 drop_last=(len(train_dataset) >= self.trainer_config["train_batch_size"]))
 
             for img, target, *other in tqdm(loader, desc="Batch Index"):
-                img, target = img.float().cuda(), target.float().cuda()
-                
+                img, target = img.float().cuda(), target.float().cuda()          
+                if mixup_fn is not None:
+                    # Since the target is one-hot and the mixup function accepts class index only, we need to convert it to the class index.
+                    target = torch.argmax(target, dim=1) 
+                    img, target = mixup_fn(img, target)
 
                 with torch.cuda.amp.autocast():
-                    if not self.model_config["ret_emb"]:
-                        pred = model(img, ret_features=False).squeeze(-1)
+                    if "init_freeze" in self.trainer_config and self.trainer_config["init_freeze"] > epoch:
+                        if not self.model_config["ret_emb"]:
+                            pred = model(img, ret_features=False, freeze=True).squeeze(-1)
+                        else:
+                            pred, _ = model(img, ret_features=True, freeze=True)
+                            pred = pred.squeeze(-1)
                     else:
-                        pred, _ = model(img, ret_features=True)
-                        pred = pred.squeeze(-1)
+                        if not self.model_config["ret_emb"]:
+                            pred = model(img, ret_features=False).squeeze(-1)
+                        else:
+                            pred, _ = model(img, ret_features=True)
+                            pred = pred.squeeze(-1)
 
                     if "weighted" in self.trainer_config and self.trainer_config["weighted"]:
                         loss = loss_fn(pred, target, weight=class_weights)
                     else:
                         loss = loss_fn(pred, target)
+                    
 
                 if scheduler is not None:
                     try:
@@ -102,15 +114,19 @@ class PyTorchPassiveTrainer(Trainer):
                     nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
                 optimizer.step()
 
+            _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
             if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
                 # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
                 # checkpoint of the current model.
-                _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
-                print(valid_losses.mean())
                 early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break
+            # Uncomment follows for debugging.
+            # else:
+            #     _, _, train_losses, _ = self._test("train", model, **self.trainer_config) 
+            #     print("Epoch: {}, Train Loss: {}".format(epoch, train_losses.mean())) 
+            #     print("Epoch: {}, Valid Loss: {}".format(epoch, valid_losses.mean()))
         return model
 
     def _test(self, dataset_split, model, **kwargs):
