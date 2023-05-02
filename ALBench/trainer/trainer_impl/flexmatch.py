@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from ALBench.trainer.trainer_impl.pytorch_semi_trainer import PyTorchSemiTrainer
 
 class FlexmatchTrainer(PyTorchSemiTrainer):
-    trainer_name = "flexmatch" # TODO: is this being set correctly, will the parent trainer_name be overridden?
+    trainer_name = "flexmatch"
     # adapted from https://github.com/microsoft/Semi-supervised-learning/tree/main/semilearn/algorithms/flexmatch
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):

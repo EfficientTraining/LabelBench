@@ -29,7 +29,7 @@ def get_feature_helper(model, dataset, seed, batch_size, num_workers, file_name)
     return features
 
 
-def get_feature(model_fn, dataset, dataset_split, file_name, embed_model_config, epoch):
+def get_feature(model_fn, dataset, dataset_split, file_name, embed_model_config, epoch, use_semi):
     # Load the model.
     model = model_fn(embed_model_config).cuda()
 

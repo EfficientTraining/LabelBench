@@ -58,7 +58,8 @@ class Trainer:
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
         super().__init_subclass__(**kwargs)
-        trainers[cls.trainer_name] = cls
+        if cls.trainer_name is not None:
+            trainers[cls.trainer_name] = cls
 
     def train(self, finetune_model=None, finetune_config=None):
         """

@@ -10,6 +10,7 @@ from pytorch_passive_trainer import PyTorchPassiveTrainer
 from ALBench.trainer.utils import EarlyStopping
 from ALBench.trainer.trainer_impl.semi_algs.randaugment import RandAugment
 
+# TODO: move to feature extractor
 def make_semi_transforms(transform):
     # TODO: for now, just returning transform_weak as the original transform itself. Can inject additional randomness later if needed
     transform_weak = transform
@@ -22,12 +23,13 @@ def make_semi_transforms(transform):
         if isinstance(t, transforms.ToTensor):
             # based on strong augmentation used in https://github.com/microsoft/Semi-supervised-learning
             transform_strong.transforms.insert(i-1, RandAugment(3, 5))
+        # TODO: throw error if to tensor isn't there
 
     return transform_weak, transform_strong
 
 
 class PyTorchSemiTrainer(PyTorchPassiveTrainer):
-    trainer_name = "pytorch_semi" # TODO: is this being set correctly. Consider setting at flexmatch level, not here at the semi base
+    trainer_name = None
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
@@ -94,11 +96,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-
-                # FIXME:
-                raise ValueError("use_embeddings not yet implemented for semiSL.")
-                #self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
-                #train_dataset, _, _ = self.dataset.get_embedding_datasets()
+                self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn, use_semi=True)
+                train_dataset, _, _ = self.dataset.get_embedding_datasets()
 
             class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
             class_weights = torch.from_numpy(class_weights).float().cuda()
@@ -108,6 +107,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
             labeled_loader = DataLoader(labeled_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
                                 num_workers=self.trainer_config["num_workers"],
                                 drop_last=(len(labeled_dataset) >= self.trainer_config["train_batch_size"]))
+            
+            # TODO: handle new changes 5/2 here and above
             
             # Make unlabeled loader.
             unlabeled_dataset = Subset(train_dataset, self.dataset.unlabeled_idxs())

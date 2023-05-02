@@ -44,11 +44,16 @@ class DatasetOnMemory(Dataset):
         return len(self.y)
 
     def __getitem__(self, item):
-        x = self.X[item]
+        if isinstance(self.X, tuple):
+            x = (self.X[0][item], self.X[1][item])
+        else:
+            x = self.X[item]
         y = self.y[item]
         return x, y
 
     def get_inputs(self):
+        if isinstance(self.X, tuple):
+            raise Exception("Dataset has tuple as input.")
         return self.X
 
     def get_labels(self):
@@ -87,7 +92,7 @@ class TransformDataset(Dataset):
             y = self.__target_transform(y)
         if self.__strong_transform:
             xs = self.__strong_transform(x)
-            return x, y, xs
+            return x, y, xs, item
         return x, y
 
     def get_transform(self):
@@ -151,20 +156,21 @@ class ALDataset:
 
         self.classnames = classnames
 
-    def update_embedding_dataset(self, epoch, get_feature_fn):
+    def update_embedding_dataset(self, epoch, get_feature_fn, use_semi=False):
         """
         Update the embedding dataset with the updat_embed_dataset_fn and the current epoch.
 
         :param int epoch: current epoch, used to update the transform of the dataset.
         :param callable update_embed_dataset_fn: function to update the embedding dataset.
+        :param bool use_semi: Flag for getting weak and strong augmented embeddings for semi-supervised learning.
         """
         assert callable(get_feature_fn), "Update_embed_dataset_fn must be a function."
 
         for _, dataset_split in enumerate(["train", "val", "test"]):
             dataset = getattr(self, dataset_split + "_dataset")
-            feat_emb = get_feature_fn(dataset, dataset_split, epoch)
+            feat_emb = get_feature_fn(dataset, dataset_split, epoch, use_semi)
             setattr(self, dataset_split + "_emb", feat_emb)
-
+    
     def update_labeled_idxs(self, new_idxs):
         """
         Insert the examples that have been newly labeled to update the dataset tracker.
@@ -183,7 +189,7 @@ class ALDataset:
         :return: three PyTorch datasets for training, validation and testing respectively.
         """
         if self.train_emb is None or self.val_emb is None or self.test_emb is None:
-            raise Exception("Embedding is not initialized.")
+            raise Exception("Semi-supervised embedding is not initialized.")
         if callable(self.__train_labels):
             self.__train_labels = self.__train_labels()
         if callable(self.__val_labels):
@@ -192,16 +198,32 @@ class ALDataset:
             self.__test_labels = self.__test_labels()
         # To avoid changing mean and std every time updating an augmented embedding, we will only set them once.
         if callable(self.__train_emb_mean):
-            self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
+            if isinstance(self.train_emb, tuple):
+                self.__train_emb_mean = (self.__train_emb_mean(self.train_emb[0], axis=0), 
+                                         self.__train_emb_mean(self.train_emb[1], axis=0))
+            else:
+                self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
         if callable(self.__train_emb_std):
-            self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
-        return DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std, self.__train_labels,
-                               self.num_classes), \
+            if isinstance(self.train_emb, tuple):
+                self.__train_emb_std = (self.__train_emb_std(self.train_emb[0], axis=0),
+                                        self.__train_emb_std(self.train_emb[1], axis=0))
+            else:
+                self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
+        if isinstance(self.train_emb, tuple):
+            train_dataset = DatasetOnMemory(((self.train_emb[0] - self.__train_emb_mean[0]) / self.__train_emb_std[0],
+                                             (self.train_emb[1] - self.__train_emb_mean[1]) / self.__train_emb_std[1]),
+                                            self.__train_labels,
+                                            self.num_classes)
+        else:
+            train_dataset = DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std,
+                                            self.__train_labels,
+                                            self.num_classes)
+        return train_dataset, \
                DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
                                self.num_classes), \
                DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
                                self.num_classes)
-
+    
     def get_embedding_dim(self):
         """Dimension of the embedding."""
         assert self.train_emb is not None, "Embedding is not initialized."
