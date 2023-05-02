@@ -16,10 +16,11 @@ def get_feature_helper(model_fn, embed_model_config, dataset, seed, batch_size, 
         model = model_fn(embed_model_config).cuda()
 
         # Get model specific transform of dataset.
-        print("Update the transform of dataset to model's special preprocess.")
-        transform = model.get_preprocess(split=dataset_split)
+        if "use_customized_transform" in embed_model_config and embed_model_config["use_customized_transform"]:
+            print("Update the transform of dataset to model's special preprocess.")
+            transform = model.get_preprocess(split=dataset_split)
+            dataset.set_transform(transform)
 
-        dataset.set_transform(transform)
         loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
         model.eval()
         features = np.zeros((len(dataset), model.get_embedding_dim()), dtype=float)
