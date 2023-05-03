@@ -7,7 +7,6 @@ from tqdm import tqdm
 from numpy import random
 
 
-
 def get_feature_helper(model, dataset, seed, batch_size, num_workers, file_name):
     if os.path.exists(f'{file_name}_features.pt'):
         print(f"Loading features from {file_name}_features.pt")
