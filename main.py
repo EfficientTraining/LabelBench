@@ -70,8 +70,8 @@ if __name__ == "__main__":
         file_name = "{}/{}_{}".format(folder_name, dataset_name, embed_model_config["model_name"])
         classifier_model_config["input_dim"] = embed_model_fn(embed_model_config).get_embedding_dim()
 
-        def get_feature_fn(dataset, dataset_split, epoch, use_semi):
-            return get_feature(embed_model_fn, dataset, dataset_split, file_name, embed_model_config, epoch, use_semi)
+        def get_feature_fn(dataset, dataset_split, epoch, use_strong):
+            return get_feature(embed_model_fn, dataset, dataset_split, file_name, embed_model_config, epoch, use_strong)
     else:
         get_feature_fn = None
 

@@ -4,45 +4,30 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
-from torchvision import transforms
 
-from pytorch_passive_trainer import PyTorchPassiveTrainer
+from ALBench.trainer.trainer_impl.pytorch_passive_trainer import PyTorchPassiveTrainer
 from ALBench.trainer.utils import EarlyStopping
-from ALBench.trainer.trainer_impl.semi_algs.randaugment import RandAugment
-
-# TODO: move to feature extractor
-def make_semi_transforms(transform):
-    # TODO: for now, just returning transform_weak as the original transform itself. Can inject additional randomness later if needed
-    transform_weak = transform
-
-    # instantiate transform_strong as a copy of transform
-    transform_strong = copy.deepcopy(transform)
-
-    # FIXME: this will break if transform is just a single transform instead of a composition. also assumes that ToTensor is in the transform
-    for i, t in enumerate(transform_strong.transforms):
-        if isinstance(t, transforms.ToTensor):
-            # based on strong augmentation used in https://github.com/microsoft/Semi-supervised-learning
-            transform_strong.transforms.insert(i-1, RandAugment(3, 5))
-        # TODO: throw error if to tensor isn't there
-
-    return transform_weak, transform_strong
+from ALBench.dataset.feature_extractor import make_semi_transforms
 
 
 class PyTorchSemiTrainer(PyTorchPassiveTrainer):
     trainer_name = None
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
-        super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
-        self.use_strong = None # (bool) flag if semi-supervised method needs strong data augmentation. Must be implemented by subclass
-    
-    def train_step(self, img_l, target_l, img_u, target_u):
-        raise NotImplementedError("Subclass does not have implementation of semi-supervised learning training function.")
+        super().__init__(trainer_config, dataset, model_fn,
+                         model_config, metric, get_feature_fn)
+        self.use_strong = None
+
+    def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us):
+        raise NotImplementedError(
+            "Subclass does not have implementation of semi-supervised learning training function.")
 
     def train(self, finetune_model=None, finetune_config=None):
 
         if self.use_strong is None:
-            raise NotImplementedError("Subclass does not specify strong transformation use in use_strong.")
-        
+            raise NotImplementedError(
+                "Subclass does not specify strong transformation use in use_strong.")
+
         if finetune_model is None:
             model = self.model_fn(self.model_config)
             if "template" in self.model_config:
@@ -50,7 +35,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                     model.init_head_withzeroshot(classnames=self.dataset.get_classnames(),
                                                  template=self.model_config["template"])
                 else:
-                    raise ValueError("Please use a model that supports zero-shot learning.")
+                    raise ValueError(
+                        "Please use a model that supports zero-shot learning.")
             model = model.cuda()
         else:
             model = copy.deepcopy(finetune_model).cuda()
@@ -65,7 +51,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         params = [p for p in model.parameters() if p.requires_grad]
 
         optimizer = self.trainer_config["optim_fn"](params)
-        total_steps = self.trainer_config["max_epoch"] * len(self.dataset) // self.trainer_config["train_batch_size"]
+        total_steps = self.trainer_config["max_epoch"] * \
+            len(self.dataset) // self.trainer_config["train_batch_size"]
         scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
             if "scheduler_fn" in self.trainer_config else None
 
@@ -89,63 +76,71 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                 train_dataset.set_strong_transform(transform_strong)
 
         # initialize the early_stopping object
-        early_stopping = EarlyStopping(
-            patience=self.trainer_config["patience"] if "patience" in self.trainer_config else None, verbose=True)
+        if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+            early_stopping = EarlyStopping(
+                patience=self.trainer_config["patience"] if "patience" in self.trainer_config else 5, verbose=True)
+        else:
+            early_stopping = None
 
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-                self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn, use_semi=True)
+                self.dataset.update_embedding_dataset(
+                    epoch=epoch, get_feature_fn=self.get_feature_fn, use_strong=self.use_strong)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
 
-            class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
+            class_weights = 1. / \
+                np.clip(np.sum(self.dataset.get_train_labels(),
+                        axis=0), a_min=1, a_max=None)
             class_weights = torch.from_numpy(class_weights).float().cuda()
 
+            # Set dataset to return indices.
+            train_dataset.set_return_indices(True)
+
             # Make labeled loader.
-            labeled_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+            labeled_dataset = Subset(
+                train_dataset, self.dataset.labeled_idxs())
             labeled_loader = DataLoader(labeled_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
-                                num_workers=self.trainer_config["num_workers"],
-                                drop_last=(len(labeled_dataset) >= self.trainer_config["train_batch_size"]))
-            
-            # TODO: handle new changes 5/2 here and above
-            
+                                        num_workers=self.trainer_config["num_workers"],
+                                        drop_last=(len(labeled_dataset) >= self.trainer_config["train_batch_size"]))
+
             # Make unlabeled loader.
-            unlabeled_dataset = Subset(train_dataset, self.dataset.unlabeled_idxs())
-            unlabeled_loader = DataLoader(unlabeled_dataset, batch_size=self.trainer_config["uratio"]*
-                                self.trainer_config["train_batch_size"], shuffle=True,
-                                num_workers=self.trainer_config["num_workers"],
-                                drop_last=False)
-            unlabeled_iterator = iter(unlabeled_loader) # need to manually mix in unlabeled batches
+            unlabeled_dataset = Subset(
+                train_dataset, self.dataset.unlabeled_idxs())
+            unlabeled_loader = DataLoader(unlabeled_dataset, batch_size=self.trainer_config["uratio"] *
+                                          self.trainer_config["train_batch_size"], shuffle=True,
+                                          num_workers=self.trainer_config["num_workers"],
+                                          drop_last=False)
+            # need to manually mix in unlabeled batches
+            unlabeled_iterator = iter(unlabeled_loader)
 
             for img_l, target_l, *other_l in tqdm(labeled_loader, desc="Batch Index"):
 
-                # Get unlabeled batch.
+                img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
+
+                # Get unlabeled batch, as in:
                 # https://stackoverflow.com/questions/51444059/how-to-iterate-over-two-dataloaders-simultaneously-using-pytorch
                 # https://github.com/pytorch/pytorch/issues/1917#issuecomment-433698337
-                # Alternative is to zip loaders as in:
-                #     https://github.com/microsoft/Semi-supervised-learning/blob/
-                #     9a24e00db040443b4b8d13ecb556b6948c56d15e/semilearn/core/algorithmbase.py#L301
-                # But zipping stops at the shortest loader, which can create problems towards the end of active training
-                # when unlabeled set is smaller than labeled set
 
                 try:
-                    img_uw, _, *other_uw = next(unlabeled_iterator)
+                    img_u, _, idx_u = next(unlabeled_iterator)
                 except StopIteration:
                     unlabeled_iterator = iter(unlabeled_loader)
-                    img_uw, _, *other_uw = next(unlabeled_iterator)
+                    img_u, _, idx_u = next(unlabeled_iterator)
 
-                img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
-                img_uw = img_uw.float().cuda()
-
-                if len(other_uw) > 0:
-                    img_us = other_uw[0].float.cuda()
+                if isinstance(img_u, tuple):
+                    img_uw, img_us = img_u
+                    img_us = img_us.float().cuda()
                 else:
+                    img_uw = img_uw
                     img_us = None
 
+                img_uw = img_uw.float().cuda()
+
                 with torch.cuda.amp.autocast():
-                    # TODO: need unlabeled indices idx_u
-                    loss = self.train_step(model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us)
+                    loss = self.train_step(
+                        model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us)
 
                 if scheduler is not None:
                     scheduler(counter)
@@ -153,15 +148,21 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                 optimizer.zero_grad()
                 loss.backward()
                 if "clip_grad" in self.trainer_config:
-                    nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
+                    nn.utils.clip_grad_norm_(
+                        params, self.trainer_config["clip_grad"])
                 optimizer.step()
 
-            if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+            # Just to be safe, disable return indices.
+            train_dataset.set_return_indices(False)
+
+            if early_stopping is not None:
                 # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
                 # checkpoint of the current model.
-                _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
+                _, _, valid_losses, _ = self._test(
+                    "val", model, **self.trainer_config)
                 print(valid_losses.mean())
-                early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
+                # Currently we don't save the model.
+                early_stopping(valid_losses.mean(), model=None)
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break

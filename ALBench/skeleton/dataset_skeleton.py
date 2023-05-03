@@ -39,6 +39,7 @@ class DatasetOnMemory(Dataset):
         self.X = X
         self.y = y
         self.n_class = n_class
+        self._return_indices = False
 
     def __len__(self):
         return len(self.y)
@@ -49,6 +50,9 @@ class DatasetOnMemory(Dataset):
         else:
             x = self.X[item]
         y = self.y[item]
+
+        if self._return_indices:
+            return x, y, item
         return x, y
 
     def get_inputs(self):
@@ -58,6 +62,9 @@ class DatasetOnMemory(Dataset):
 
     def get_labels(self):
         return self.y
+
+    def set_return_indices(self, return_indices):
+        self._return_indices = return_indices
 
 
 class TransformDataset(Dataset):
@@ -76,6 +83,7 @@ class TransformDataset(Dataset):
         self.__default_transform = transform
         self.__default_target_transform = target_transform
         self.ignore_metadata = ignore_metadata
+        self._return_indices = False
 
     def __len__(self):
         return len(self.dataset)
@@ -92,16 +100,19 @@ class TransformDataset(Dataset):
             y = self.__target_transform(y)
         if self.__strong_transform:
             xs = self.__strong_transform(x)
-            return x, y, xs, item
+            x = (x, xs)
+
+        if self._return_indices:
+            return x, y, item
         return x, y
 
     def get_transform(self):
         return self.__transform
-    
+
     def set_transform(self, transform):
         self.__transform = transform
 
-    def set_strong_stransform(self, strong_transform):
+    def set_strong_transform(self, strong_transform):
         self.__strong_transform = strong_transform
 
     def set_target_transform(self, target_transform):
@@ -112,6 +123,9 @@ class TransformDataset(Dataset):
 
     def set_to_default_target_transform(self):
         self.__target_transform = self.__default_target_transform
+
+    def set_return_indices(self, return_indices):
+        self._return_indices = return_indices
 
 
 class ALDataset:
@@ -156,21 +170,23 @@ class ALDataset:
 
         self.classnames = classnames
 
-    def update_embedding_dataset(self, epoch, get_feature_fn, use_semi=False):
+    def update_embedding_dataset(self, epoch, get_feature_fn, use_strong=False):
         """
         Update the embedding dataset with the updat_embed_dataset_fn and the current epoch.
 
         :param int epoch: current epoch, used to update the transform of the dataset.
         :param callable update_embed_dataset_fn: function to update the embedding dataset.
-        :param bool use_semi: Flag for getting weak and strong augmented embeddings for semi-supervised learning.
+        :param bool use_strong: Flag for getting weak and strong augmented embeddings for semi-supervised learning.
         """
-        assert callable(get_feature_fn), "Update_embed_dataset_fn must be a function."
+        assert callable(
+            get_feature_fn), "Update_embed_dataset_fn must be a function."
 
         for _, dataset_split in enumerate(["train", "val", "test"]):
             dataset = getattr(self, dataset_split + "_dataset")
-            feat_emb = get_feature_fn(dataset, dataset_split, epoch, use_semi)
+            feat_emb = get_feature_fn(
+                dataset, dataset_split, epoch, use_strong)
             setattr(self, dataset_split + "_emb", feat_emb)
-    
+
     def update_labeled_idxs(self, new_idxs):
         """
         Insert the examples that have been newly labeled to update the dataset tracker.
@@ -199,16 +215,18 @@ class ALDataset:
         # To avoid changing mean and std every time updating an augmented embedding, we will only set them once.
         if callable(self.__train_emb_mean):
             if isinstance(self.train_emb, tuple):
-                self.__train_emb_mean = (self.__train_emb_mean(self.train_emb[0], axis=0), 
+                self.__train_emb_mean = (self.__train_emb_mean(self.train_emb[0], axis=0),
                                          self.__train_emb_mean(self.train_emb[1], axis=0))
             else:
-                self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
+                self.__train_emb_mean = self.__train_emb_mean(
+                    self.train_emb, axis=0)
         if callable(self.__train_emb_std):
             if isinstance(self.train_emb, tuple):
                 self.__train_emb_std = (self.__train_emb_std(self.train_emb[0], axis=0),
                                         self.__train_emb_std(self.train_emb[1], axis=0))
             else:
-                self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
+                self.__train_emb_std = self.__train_emb_std(
+                    self.train_emb, axis=0)
         if isinstance(self.train_emb, tuple):
             train_dataset = DatasetOnMemory(((self.train_emb[0] - self.__train_emb_mean[0]) / self.__train_emb_std[0],
                                              (self.train_emb[1] - self.__train_emb_mean[1]) / self.__train_emb_std[1]),
@@ -219,14 +237,16 @@ class ALDataset:
                                             self.__train_labels,
                                             self.num_classes)
         return train_dataset, \
-               DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
-                               self.num_classes), \
-               DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
-                               self.num_classes)
-    
+            DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
+                            self.num_classes), \
+            DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
+                            self.num_classes)
+
     def get_embedding_dim(self):
         """Dimension of the embedding."""
         assert self.train_emb is not None, "Embedding is not initialized."
+        if isinstance(self.train_emb, tuple):
+            return self.train_emb[0].shape[1]
         return self.train_emb.shape[1]
 
     def get_input_datasets(self):
@@ -255,10 +275,9 @@ class ALDataset:
     def labeled_idxs(self):
         """Indexes of the labeled examples in chronological order."""
         return np.array(self.__labeled_idxs)
-    
+
     def unlabeled_idxs(self):
         """Indexes of the unlabeled examples."""
-        # TODO: test this
         labeled_set = set(list(self.labeled_idxs()))
         all_set = set(list(range(self.__len__())))
         return np.array(list(all_set - labeled_set))

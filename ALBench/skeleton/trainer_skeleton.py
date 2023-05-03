@@ -12,7 +12,7 @@ class Trainer:
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         """
         :param Dict trainer_config: Dictionary of hyper-parameters of the trainer.
-        
+
             trainer_name str: Name of the trainer. 
             use_embeddings bool: Whether to use embeddings for training or use the original data. If not specified, default value is False.
             loss_fn str: Name of the loss function for training. 
@@ -54,7 +54,6 @@ class Trainer:
         self._eval_results = [None for _ in range(12)]
         self.get_feature_fn = get_feature_fn
 
-    # TODO: check if this is implemented properly for semiSL methods
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
         super().__init_subclass__(**kwargs)
@@ -69,7 +68,8 @@ class Trainer:
         :param Optional[torch.nn.Module] finetune_model: Warm start model if indicated.
         :param Optional[Dict] finetune_config: Warm start model hyper-parameters.
         """
-        raise NotImplementedError("Subclass does not have implementation of training function.")
+        raise NotImplementedError(
+            "Subclass does not have implementation of training function.")
 
     def evaluate_on_train(self, model, mc_dropout=False):
         self._eval_results[0], self._eval_results[3], self._eval_results[6], self._eval_results[9] = \
@@ -96,4 +96,5 @@ class Trainer:
         return metric_dict
 
     def _test(self, dataset, model, **kwargs):
-        raise NotImplementedError("Subclass does not have implementation of testing function.")
+        raise NotImplementedError(
+            "Subclass does not have implementation of testing function.")
