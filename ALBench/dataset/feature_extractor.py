@@ -28,6 +28,10 @@ def make_semi_transforms(transform):
 
 def get_feature_helper(model_fn, embed_model_config, dataset, seed, batch_size, num_workers, file_name, dataset_split,
                        use_strong):
+
+    # Override use_strong if dataset_split is not train.
+    use_strong = use_strong and dataset_split == "train"
+
     if use_strong and os.path.exists(f'{file_name}_features_strong.pt'):
         print(f"Loading features from {file_name}_features_strong.pt")
         features = torch.load(f'{file_name}_features_strong.pt')
