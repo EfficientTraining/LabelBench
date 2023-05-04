@@ -65,6 +65,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                 "Customized transform is only supported for non-embedding models."
 
         # Get the training dataset for the non-embedding dataset.
+        # FIXME: in the test I ran with ViT and CIFAR10, I was getting NaN values for the logits on the second epoch.
+        #     May be a matter of tuning hyperparameters (e.g., learning rate), but should investigate.
         if "use_embeddings" not in self.trainer_config or (not self.trainer_config["use_embeddings"]):
             train_dataset, _, _ = self.dataset.get_input_datasets()
             if "use_customized_transform" in self.model_config and self.model_config["use_customized_transform"]:
