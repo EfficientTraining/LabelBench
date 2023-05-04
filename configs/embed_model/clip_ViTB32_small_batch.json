@@ -1,0 +1,9 @@
+{
+  "model_name": "clip_vitb32",
+  "use_customized_transform": true,
+  "num_transform_seeds": 5,
+  "ret_emb": true,
+  "pretrain": true,
+  "inference_batch_size": 64,
+  "num_workers": 40
+}

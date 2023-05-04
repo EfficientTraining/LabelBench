@@ -35,7 +35,11 @@ class DatasetOnMemory(Dataset):
     """
 
     def __init__(self, X, y, n_class):
-        assert len(X) == len(y), "X and y must have the same length."
+        if isinstance(X, tuple):
+            assert len(X[0]) == len(y) and len(X[1]) == len(
+                y), "X and y must have the same length."
+        else:
+            assert len(X) == len(y), "X and y must have the same length."
         self.X = X
         self.y = y
         self.n_class = n_class
@@ -90,16 +94,16 @@ class TransformDataset(Dataset):
 
     def __getitem__(self, item):
         if self.ignore_metadata:
-            x, y = self.dataset[item][:2]
+            x_orig, y = self.dataset[item][:2]
         else:
-            x, y = self.dataset[item]
+            x_orig, y = self.dataset[item]
 
         if self.__transform:
-            x = self.__transform(x)
+            x = self.__transform(x_orig)
         if self.__target_transform:
             y = self.__target_transform(y)
         if self.__strong_transform:
-            xs = self.__strong_transform(x)
+            xs = self.__strong_transform(x_orig)
             x = (x, xs)
 
         if self._return_indices:
@@ -232,14 +236,18 @@ class ALDataset:
                                              (self.train_emb[1] - self.__train_emb_mean[1]) / self.__train_emb_std[1]),
                                             self.__train_labels,
                                             self.num_classes)
+            train_emb_mean_single = self.__train_emb_mean[0]
+            train_emb_std_single = self.__train_emb_std[0]
         else:
             train_dataset = DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std,
                                             self.__train_labels,
                                             self.num_classes)
+            train_emb_mean_single = self.__train_emb_mean
+            train_emb_std_single = self.__train_emb_std
         return train_dataset, \
-            DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
+            DatasetOnMemory((self.val_emb - train_emb_mean_single) / train_emb_std_single, self.__val_labels,
                             self.num_classes), \
-            DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
+            DatasetOnMemory((self.test_emb - train_emb_mean_single) / train_emb_std_single, self.__test_labels,
                             self.num_classes)
 
     def get_embedding_dim(self):

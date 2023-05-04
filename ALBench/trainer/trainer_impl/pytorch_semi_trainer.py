@@ -22,6 +22,9 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         raise NotImplementedError(
             "Subclass does not have implementation of semi-supervised learning training function.")
 
+    def pretrain(self):
+        pass
+
     def train(self, finetune_model=None, finetune_config=None):
 
         if self.use_strong is None:
@@ -82,6 +85,9 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         else:
             early_stopping = None
 
+        # Executing pre-training (if implemented)
+        self.pretrain()
+
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
@@ -117,8 +123,6 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
 
             for img_l, target_l, *other_l in tqdm(labeled_loader, desc="Batch Index"):
 
-                img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
-
                 # Get unlabeled batch, as in:
                 # https://stackoverflow.com/questions/51444059/how-to-iterate-over-two-dataloaders-simultaneously-using-pytorch
                 # https://github.com/pytorch/pytorch/issues/1917#issuecomment-433698337
@@ -129,13 +133,15 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                     unlabeled_iterator = iter(unlabeled_loader)
                     img_u, _, idx_u = next(unlabeled_iterator)
 
-                if isinstance(img_u, tuple):
+                if self.use_strong:
                     img_uw, img_us = img_u
                     img_us = img_us.float().cuda()
+                    img_l = img_l[0]
                 else:
-                    img_uw = img_uw
+                    img_uw = img_u
                     img_us = None
 
+                img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
                 img_uw = img_uw.float().cuda()
 
                 with torch.cuda.amp.autocast():

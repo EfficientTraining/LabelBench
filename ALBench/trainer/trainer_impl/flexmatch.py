@@ -11,12 +11,14 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
         super().__init__(trainer_config, dataset, model_fn,
                          model_config, metric, get_feature_fn)
         self.use_strong = True
-        self.p_cutoff = trainer_config['p_cutoff']
+
+    def pretrain(self):
         self.uhat = -1 * \
-            torch.ones(len(self.dataset.unlabeled_idxs)).float().cuda()
+            torch.ones(len(self.dataset.unlabeled_idxs())).long().cuda()
         self.sigma = torch.zeros(
-            self.dataset.get_num_classes() + 1).float().cuda()
-        self.sigma[-1] = len(self.dataset.unlabeled_idxs)
+            self.dataset.get_num_classes() + 1).long().cuda()
+        self.n_ul = len(self.dataset.unlabeled_idxs())
+        self.sigma[-1] = self.n_ul
 
     def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us):
         # TODO: documentation
@@ -47,22 +49,22 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
             probs_uw = F.softmax(logits_uw)
             max_probs, pseudo_label = torch.max(probs_uw, dim=-1)
             mask = max_probs.ge(
-                self.p_cutoff * (beta[pseudo_label] / (2. - beta[pseudo_label])))
+                self.trainer_config['p_cutoff'] * (beta[pseudo_label] / (2. - beta[pseudo_label])))
             mask = mask.to(max_probs.dtype)
-            select = max_probs.ge(self.p_cutoff)
+            select = max_probs.ge(self.trainer_config['p_cutoff'])
 
             # update uhat and sigma
             if idx_u[select == 1].nelement() != 0:
                 uhat_update = pseudo_label[select == 1]
                 self.uhat[idx_u[select == 1]] = uhat_update
 
-                self.sigma[-1] = self.sigma[-1] - len(uhat_update)
-                for c in range(self.dataset.get_num_classes()):
-                    self.sigma[c] += torch.sum(uhat_update == c)
+            for c in range(self.dataset.get_num_classes()):
+                self.sigma[c] = torch.sum(self.uhat == c)
+            self.sigma[-1] = self.n_ul - torch.sum(self.sigma[:-1])
 
         # Masked consistency loss (pseudo-labels of weakly augmented data applied to strongly augmented data).
         unsup_loss = F.cross_entropy(logits_us, pseudo_label, reduction='none')
         unsup_loss = unsup_loss * mask
         unsup_loss = unsup_loss.mean()
 
-        return sup_loss + self.trainer_config["lambda_u"] * unsup_loss
+        return sup_loss + self.trainer_config["ulb_loss_ratio"] * unsup_loss

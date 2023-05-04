@@ -20,10 +20,9 @@ def make_semi_transforms(transform):
         if isinstance(t, transforms.ToTensor):
             # based on strong augmentation used in https://github.com/microsoft/Semi-supervised-learning
             transform_strong.transforms.insert(i, RandAugment(3, 5))
+            break
 
     return transform_weak, transform_strong
-
-# TODO(Greg): handle dataset_split checking
 
 
 def get_feature_helper(model_fn, embed_model_config, dataset, seed, batch_size, num_workers, file_name, dataset_split,

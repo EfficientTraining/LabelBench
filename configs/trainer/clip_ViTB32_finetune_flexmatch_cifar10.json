@@ -1,0 +1,20 @@
+{
+  "trainer_name": "flexmatch",
+  "use_embeddings": false,
+  "loss_fn": "Cross Entropy",
+  "pred_fn": "Softmax",
+  "optim_name": "AdamW",
+  "scheduler_name": "CosineLR",
+  "wd": 1e-1,
+  "lr": 3e-5,
+  "warmup_steps": 500,
+  "clip_grad": 1.0,
+  "max_epoch": 10,
+  "patience": 5,
+  "train_batch_size": 64,
+  "test_batch_size": 100,
+  "num_workers": 10,
+  "p_cutoff": 0.95,
+  "ulb_loss_ratio": 1.0,
+  "uratio": 5
+}
