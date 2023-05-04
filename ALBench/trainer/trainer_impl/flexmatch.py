@@ -14,9 +14,10 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
 
     def pretrain(self):
         self.uhat = -1 * \
-            torch.ones(len(self.dataset.unlabeled_idxs())).long().cuda()
+            torch.ones(len(self.dataset.unlabeled_idxs()),
+                       dtype=torch.long).cuda()
         self.sigma = torch.zeros(
-            self.dataset.get_num_classes() + 1).long().cuda()
+            self.dataset.get_num_classes() + 1, dtype=torch.long).cuda()
         self.n_ul = len(self.dataset.unlabeled_idxs())
         self.sigma[-1] = self.n_ul
 
@@ -46,7 +47,7 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
 
             # set mask for terms to appear in unsupervised loss, and select terms to update uhat and sigma
             beta = self.sigma[:-1] / torch.max(self.sigma)
-            probs_uw = F.softmax(logits_uw)
+            probs_uw = F.softmax(logits_uw, dim=-1)
             max_probs, pseudo_label = torch.max(probs_uw, dim=-1)
             mask = max_probs.ge(
                 self.trainer_config['p_cutoff'] * (beta[pseudo_label] / (2. - beta[pseudo_label])))
@@ -55,11 +56,10 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
 
             # update uhat and sigma
             if idx_u[select == 1].nelement() != 0:
-                uhat_update = pseudo_label[select == 1]
-                self.uhat[idx_u[select == 1]] = uhat_update
+                self.uhat[idx_u[select == 1]] = pseudo_label[select == 1]
 
             for c in range(self.dataset.get_num_classes()):
-                self.sigma[c] = torch.sum(self.uhat == c)
+                self.sigma[c] = torch.sum(torch.eq(self.uhat, c))
             self.sigma[-1] = self.n_ul - torch.sum(self.sigma[:-1])
 
         # Masked consistency loss (pseudo-labels of weakly augmented data applied to strongly augmented data).
