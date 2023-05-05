@@ -5,7 +5,7 @@
   "pred_fn": "Softmax",
   "optim_name": "Adam",
   "warm_up": true,
-  "warm_up_para": 1,
+  "warm_up_para": 3,
   "wd": 5e-5,
   "lr": 1e-3,
   "max_epoch": 20,
