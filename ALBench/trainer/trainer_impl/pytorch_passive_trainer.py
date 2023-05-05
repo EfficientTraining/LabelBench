@@ -124,11 +124,11 @@ class PyTorchPassiveTrainer(Trainer):
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break
-        if self.trainer_config["warm_up"]:
-            if os.path.exists(self.file_name):
-                os.remove(self.file_name)
-            torch.save(model.state_dict(), self.file_name)
-            print(f"save trained model")
+            if self.trainer_config["warm_up"] and epoch == int(max_epoch/self.trainer_config["warm_up_para"]):
+                if os.path.exists(self.file_name):
+                    os.remove(self.file_name)
+                torch.save(model.state_dict(), self.file_name)
+                print(f"save trained model")
 
         return model
 
