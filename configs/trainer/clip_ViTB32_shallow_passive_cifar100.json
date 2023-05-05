@@ -4,6 +4,7 @@
   "loss_fn": "Cross Entropy",
   "pred_fn": "Softmax",
   "optim_name": "Adam",
+  "warm_up": false,
   "wd": 5e-5,
   "lr": 1e-3,
   "max_epoch": 20,

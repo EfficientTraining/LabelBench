@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
+import os
 
 from ALBench.skeleton.trainer_skeleton import Trainer
 from ALBench.trainer.utils import EarlyStopping
@@ -14,9 +15,23 @@ class PyTorchPassiveTrainer(Trainer):
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
+        self.file_name = "pytorch_warmup_checkpoint.pickle"
+        if self.trainer_config["warm_up"] and os.path.exists(self.file_name):
+            os.remove(self.file_name)
 
     def train(self, finetune_model=None, finetune_config=None):
-        if finetune_model is None:
+
+        if self.trainer_config["warm_up"] and os.path.exists(self.file_name):
+            print(f"load warmup model")
+            model = self.model_fn(self.model_config)
+            state_dict = torch.load(self.file_name)
+            remove_prefix = 'module.'
+            state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in
+                          state_dict.items()}
+            model.load_state_dict(state_dict)
+            model = model.cuda()
+            model.train()
+        elif finetune_model is None:
             model = self.model_fn(self.model_config)
             if "template" in self.model_config:
                 if hasattr(model, 'init_head_withzeroshot'):
@@ -109,6 +124,12 @@ class PyTorchPassiveTrainer(Trainer):
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break
+        if self.trainer_config["warm_up"]:
+            if os.path.exists(self.file_name):
+                os.remove(self.file_name)
+            torch.save(model.state_dict(), self.file_name)
+            print(f"save trained model")
+
         return model
 
     def _test(self, dataset_split, model, **kwargs):
