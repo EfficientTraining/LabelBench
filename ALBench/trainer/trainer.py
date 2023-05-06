@@ -118,9 +118,6 @@ def get_scheduler_fn(trainer_config):
     return trainer_config
 
 
-
-
-
 # Modified cosine_lr functions, copy from https://github.com/mlfoundations/wise-ft/blob/master/src/models/utils.py.
 def assign_learning_rate(param_group, new_lr):
     param_group["lr"] = new_lr
