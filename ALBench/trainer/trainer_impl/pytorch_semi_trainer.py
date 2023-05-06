@@ -145,6 +145,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
 
                 img_l, target_l = img_l.float().cuda(), target_l.float().cuda()
                 img_uw = img_uw.float().cuda()
+                idx_u = idx_u.cuda()
 
                 with torch.cuda.amp.autocast():
                     loss = self.train_step(
@@ -174,4 +175,12 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break
+
+        # Set embeddings back to not using semi-supervised transformation for evaluation.
+        if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
+            self.dataset.update_embedding_dataset(
+                epoch=0, get_feature_fn=self.get_feature_fn, use_strong=False)
+        elif self.use_strong:
+            train_dataset.set_strong_transform(None)
+
         return model

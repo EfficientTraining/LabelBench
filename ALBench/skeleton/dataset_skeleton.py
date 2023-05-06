@@ -219,35 +219,27 @@ class ALDataset:
         # To avoid changing mean and std every time updating an augmented embedding, we will only set them once.
         if callable(self.__train_emb_mean):
             if isinstance(self.train_emb, tuple):
-                self.__train_emb_mean = (self.__train_emb_mean(self.train_emb[0], axis=0),
-                                         self.__train_emb_mean(self.train_emb[1], axis=0))
+                self.__train_emb_mean = self.__train_emb_mean(self.train_emb[0], axis=0)
             else:
-                self.__train_emb_mean = self.__train_emb_mean(
-                    self.train_emb, axis=0)
+                self.__train_emb_mean = self.__train_emb_mean(self.train_emb, axis=0)
         if callable(self.__train_emb_std):
             if isinstance(self.train_emb, tuple):
-                self.__train_emb_std = (self.__train_emb_std(self.train_emb[0], axis=0),
-                                        self.__train_emb_std(self.train_emb[1], axis=0))
+                self.__train_emb_std = self.__train_emb_std(self.train_emb[0], axis=0)
             else:
-                self.__train_emb_std = self.__train_emb_std(
-                    self.train_emb, axis=0)
+                self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
         if isinstance(self.train_emb, tuple):
-            train_dataset = DatasetOnMemory(((self.train_emb[0] - self.__train_emb_mean[0]) / self.__train_emb_std[0],
-                                             (self.train_emb[1] - self.__train_emb_mean[1]) / self.__train_emb_std[1]),
+            train_dataset = DatasetOnMemory(((self.train_emb[0] - self.__train_emb_mean) / self.__train_emb_std,
+                                             (self.train_emb[1] - self.__train_emb_mean) / self.__train_emb_std),
                                             self.__train_labels,
                                             self.num_classes)
-            train_emb_mean_single = self.__train_emb_mean[0]
-            train_emb_std_single = self.__train_emb_std[0]
         else:
             train_dataset = DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std,
                                             self.__train_labels,
                                             self.num_classes)
-            train_emb_mean_single = self.__train_emb_mean
-            train_emb_std_single = self.__train_emb_std
         return train_dataset, \
-            DatasetOnMemory((self.val_emb - train_emb_mean_single) / train_emb_std_single, self.__val_labels,
+            DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std, self.__val_labels,
                             self.num_classes), \
-            DatasetOnMemory((self.test_emb - train_emb_mean_single) / train_emb_std_single, self.__test_labels,
+            DatasetOnMemory((self.test_emb - self.__train_emb_mean) / self.__train_emb_std, self.__test_labels,
                             self.num_classes)
 
     def get_embedding_dim(self):

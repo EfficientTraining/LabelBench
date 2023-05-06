@@ -8,22 +8,24 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
     # adapted from https://github.com/microsoft/Semi-supervised-learning/tree/main/semilearn/algorithms/flexmatch
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
-        super().__init__(trainer_config, dataset, model_fn,
-                         model_config, metric, get_feature_fn)
+        super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
         self.use_strong = True
+        self.uhat = None
+        self.sigma = None
+        self.n_ul = None
+        self.unlabeled_idxs = None
 
     def pretrain(self):
+        self.unlabeled_idxs = torch.from_numpy(self.dataset.unlabeled_idxs()).long().cuda()
         self.uhat = -1 * \
-            torch.ones(len(self.dataset.unlabeled_idxs()),
-                       dtype=torch.long).cuda()
+            torch.ones(len(self.dataset), dtype=torch.long).cuda()
         self.sigma = torch.zeros(
             self.dataset.get_num_classes() + 1, dtype=torch.long).cuda()
-        self.n_ul = len(self.dataset.unlabeled_idxs())
+        self.n_ul = len(self.unlabeled_idxs)
         self.sigma[-1] = self.n_ul
 
     def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us):
         # TODO: documentation
-
         # Get logits for labeled and unlabeled data.
         if not self.model_config["ret_emb"]:
             logits_l = model(img_l, ret_features=False).squeeze(-1)
@@ -59,7 +61,7 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
                 self.uhat[idx_u[select == 1]] = pseudo_label[select == 1]
 
             for c in range(self.dataset.get_num_classes()):
-                self.sigma[c] = torch.sum(torch.eq(self.uhat, c))
+                self.sigma[c] = torch.sum(torch.eq(self.uhat[self.unlabeled_idxs], c))
             self.sigma[-1] = self.n_ul - torch.sum(self.sigma[:-1])
 
         # Masked consistency loss (pseudo-labels of weakly augmented data applied to strongly augmented data).
