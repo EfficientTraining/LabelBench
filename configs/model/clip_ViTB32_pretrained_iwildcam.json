@@ -1,0 +1,7 @@
+{
+  "model_name": "clip_vitb32",
+  "pretrain": true,
+  "ret_emb": false,
+  "use_customized_transform": true,
+  "template": "iwildcam_template"
+}

@@ -102,6 +102,10 @@ class Caltech256(VisionDataset):
             md5="67b4f42ca05d46448c6bb8ecd2220f6d",
         )
 
+    def get_class_names(self):
+        class257 = [c.split(".")[-1] for c in self.categories]
+        return class257[:-1]
+
 
 @register_dataset("caltech256", LabelType.MULTI_CLASS)
 def get_caltech256_dataset(data_dir, *args):
@@ -115,6 +119,7 @@ def get_caltech256_dataset(data_dir, *args):
     target_transform = transforms.Compose(
         [lambda x: torch.LongTensor([x]) % 256, lambda x: torch.flatten(F.one_hot(x, 256))])
     dataset = Caltech256(root=data_dir, target_transform=target_transform, download=True)
+    classnames = dataset.get_class_names()
     rnd = np.random.RandomState(42)
     idxs = rnd.permutation(len(dataset))
     train_idxs, val_idxs, test_idxs = idxs[:len(dataset) - len(dataset) // 5], \
@@ -123,8 +128,7 @@ def get_caltech256_dataset(data_dir, *args):
     train_dataset, val_dataset, test_dataset = \
         Subset(dataset, train_idxs), Subset(dataset, val_idxs), Subset(dataset, test_idxs)
     return TransformDataset(train_dataset, transform=transform), TransformDataset(val_dataset, transform=transform), \
-           TransformDataset(test_dataset, transform=transform), None, None, None, 256, None
-    # TODO: add class names
+           TransformDataset(test_dataset, transform=transform), None, None, None, 256, classnames
 
 
 if __name__ == "__main__":

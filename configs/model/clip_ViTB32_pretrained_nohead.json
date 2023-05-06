@@ -1,5 +1,5 @@
 {
-  "model_name": "mae_vitb16",
+  "model_name": "clip_vitb32",
   "pretrain": true,
   "ret_emb": false,
   "use_customized_transform": true
