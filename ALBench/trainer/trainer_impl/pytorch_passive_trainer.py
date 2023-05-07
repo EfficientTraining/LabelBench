@@ -15,7 +15,7 @@ class PyTorchPassiveTrainer(Trainer):
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
 
-    def train(self, finetune_model=None, finetune_config=None):
+    def init_train(self, finetune_model):
         if finetune_model is None:
             model = self.model_fn(self.model_config)
             if "template" in self.model_config:
@@ -29,7 +29,6 @@ class PyTorchPassiveTrainer(Trainer):
             model = copy.deepcopy(finetune_model).cuda()
 
         loss_fn = self.trainer_config["loss_fn"]
-        mixup_fn = self.trainer_config["mixup_fn"](self.dataset.num_classes) 
         max_epoch = self.trainer_config["max_epoch"]
 
         devices = list(range(torch.cuda.device_count()))
@@ -39,14 +38,26 @@ class PyTorchPassiveTrainer(Trainer):
         params = [p for p in model.parameters() if p.requires_grad]
 
         optimizer = self.trainer_config["optim_fn"](params)
-        total_steps = self.trainer_config["max_epoch"] * len(self.dataset.labeled_idxs()) // self.trainer_config["train_batch_size"]
+        total_steps = self.trainer_config["max_epoch"] * \
+                      len(self.dataset.labeled_idxs()) // self.trainer_config["train_batch_size"]
         scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
             if "scheduler_fn" in self.trainer_config else None
+
+        # initialize the early_stopping object
+        if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
+            early_stopping = EarlyStopping(
+                patience=self.trainer_config["patience"] if "patience" in self.trainer_config else 5, verbose=True)
+        else:
+            early_stopping = None
 
         # Check to avoid using customized transform for embedding dataset.
         if "use_customized_transform" in self.model_config and "use_embeddings" in self.trainer_config:
             assert not (self.trainer_config["use_embeddings"] and self.model_config["use_customized_transform"]), \
                 "Customized transform is only supported for non-embedding models."
+        return model, params, loss_fn, max_epoch, optimizer, scheduler, early_stopping
+
+    def train(self, finetune_model=None, finetune_config=None):
+        model, params, loss_fn, max_epoch, optimizer, scheduler, early_stopping = self.init_train(finetune_model)
 
         # Get the training dataset for the non-embedding dataset.
         if "use_embeddings" not in self.trainer_config or (not self.trainer_config["use_embeddings"]):
@@ -55,12 +66,7 @@ class PyTorchPassiveTrainer(Trainer):
                 transform = model.module.get_preprocess(split="train")
                 train_dataset.set_transform(transform)
 
-        # initialize the early_stopping object
-        if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
-            early_stopping = EarlyStopping(
-                patience=self.trainer_config["patience"] if "patience" in self.trainer_config else 5, verbose=True)
-        else:
-            early_stopping = None
+        mixup_fn = self.trainer_config["mixup_fn"](self.dataset.num_classes)
 
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
@@ -102,30 +108,38 @@ class PyTorchPassiveTrainer(Trainer):
                         loss = loss_fn(pred, target, weight=class_weights)
                     else:
                         loss = loss_fn(pred, target)
-                    
 
-                if scheduler is not None:
-                    try:
-                        scheduler(counter)
-                    except:
-                        scheduler.step(counter)
-                    counter += 1
+                counter = self.scheduler_step(scheduler, counter)
                 optimizer.zero_grad()
                 loss.backward()
                 if "clip_grad" in self.trainer_config:
                     nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
                 optimizer.step()
 
-            if early_stopping is not None:
-                # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
-                # checkpoint of the current model.
-                _, _, valid_losses, _ = self._test("val", model, **self.trainer_config) 
-                early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
-                if early_stopping.early_stop:
-                    print("Early stopping.")
+                if self.check_early_stop(early_stopping, model):
                     break
-                
+
         return model
+
+    def check_early_stop(self, early_stopping, model):
+        if early_stopping is not None:
+            # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
+            # checkpoint of the current model.
+            _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
+            early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
+            if early_stopping.early_stop:
+                print("Early stopping.")
+                return True
+        return False
+
+    def scheduler_step(self, scheduler, counter):
+        if scheduler is not None:
+            try:
+                scheduler(counter)
+            except:
+                scheduler.step(counter)
+            counter += 1
+        return counter
 
     def _test(self, dataset_split, model, **kwargs):
         model.eval()
