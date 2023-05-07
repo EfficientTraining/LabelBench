@@ -54,9 +54,10 @@ if __name__ == "__main__":
         trainer_config = json.load(f)
 
     # os.environ["WANDB_SILENT"] = "true"
-    run_name = "%s, embed_model = %s, classifier_model=%s, warmup=%s, warmup_para=%s, mixup=%s, mixup_coef=%s" % (
-        strategy_config["strategy_name"], embed_model_config["model_name"], classifier_model_config["model_name"],
-        trainer_config["warm_up"], trainer_config["warm_up_para"], trainer_config["mixup"], trainer_config["mixup_coef"])
+    run_name = "%s, %s, embed_model = %s, classifier_model=%s, warmup=%s, warmup_para=%s, mixup=%s, mixup_coef=%s" % (
+        dataset_name, strategy_config["strategy_name"], embed_model_config["model_name"],
+        classifier_model_config["model_name"], trainer_config["warm_up"], trainer_config["warm_up_para"],
+        trainer_config["mixup"], trainer_config["mixup_coef"])
     wandb.init(project="Active Learning, %s, Batch Size=%d" % (dataset_name, batch_size), entity=wandb_name,
                name=run_name, config=vars(args))
 
@@ -87,6 +88,9 @@ if __name__ == "__main__":
     trainer_config = get_fns(trainer_config)
     trainer_config = get_optimizer_fn(trainer_config)
     trainer_config = get_scheduler_fn(trainer_config)
+    # add seed and run_name to trainer_config
+    trainer_config["seed"] = seed
+    trainer_config["run_name"] = run_name
     trainer = get_trainer(trainer_config["trainer_name"], trainer_config, dataset, model_fn, classifier_model_config,
                           metric, get_feature_fn)
 

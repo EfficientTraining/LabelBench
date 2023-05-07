@@ -15,7 +15,9 @@ class PyTorchPassiveTrainer(Trainer):
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
-        self.file_name = "pytorch_warmup_checkpoint.pickle"
+        self.folder_name = os.path.join("./checkpoints/", self.trainer_config["run_name"])
+        os.makedirs(self.folder_name, exist_ok=True)
+        self.file_name = os.path.join(self.folder_name, f"pytorch_warmup_checkpoint_seed{trainer_config['seed']}.pickle")
         if self.trainer_config["warm_up"] and os.path.exists(self.file_name):
             os.remove(self.file_name)
 
