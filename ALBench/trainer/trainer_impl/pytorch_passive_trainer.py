@@ -22,13 +22,34 @@ class PyTorchPassiveTrainer(Trainer):
     def train(self, finetune_model=None, finetune_config=None):
 
         if self.trainer_config["warm_up"] and os.path.exists(self.file_name):
+            # pre-saved warmup model
             print(f"load warmup model")
             model = self.model_fn(self.model_config)
-            state_dict = torch.load(self.file_name)
+            state_dict_warmup = torch.load(self.file_name)
             remove_prefix = 'module.'
-            state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in
-                          state_dict.items()}
-            model.load_state_dict(state_dict)
+            state_dict_warmup = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in
+                                 state_dict_warmup.items()}
+
+            if self.trainer_config["mixup"]:
+                # random model
+                model_random = self.model_fn(self.model_config)
+                if "template" in self.model_config:
+                    if hasattr(model_random, 'init_head_withzeroshot'):
+                        model_random.init_head_withzeroshot(classnames=self.dataset.get_classnames(),
+                                                            template=self.model_config["template"])
+                    else:
+                        raise ValueError("Please use a model that supports zero-shot learning.")
+                model_random = model_random.cuda()
+                state_dict_random = model_random.state_dict()
+
+                # mixup weights
+                assert set(state_dict_random.keys()) == set(state_dict_warmup.keys())
+                mixup_coef = self.trainer_config["mixup_coef"]
+                state_dict_mixup = {k: (1-mixup_coef) * state_dict_random[k] + mixup_coef * state_dict_warmup[k]
+                                    for k in state_dict_warmup.keys()}
+                model.load_state_dict(state_dict_mixup)
+            else:
+                model.load_state_dict(state_dict_warmup)
             model = model.cuda()
             model.train()
         elif finetune_model is None:
@@ -78,6 +99,13 @@ class PyTorchPassiveTrainer(Trainer):
 
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
+
+            if self.trainer_config["warm_up"] and epoch == int(max_epoch/self.trainer_config["warm_up_para"]):
+                if os.path.exists(self.file_name):
+                    os.remove(self.file_name)
+                torch.save(model.state_dict(), self.file_name)
+                print(f"save trained model")
+
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
                 self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
@@ -124,11 +152,12 @@ class PyTorchPassiveTrainer(Trainer):
                 if early_stopping.early_stop:
                     print("Early stopping.")
                     break
-            if self.trainer_config["warm_up"] and epoch == int(max_epoch/self.trainer_config["warm_up_para"]):
-                if os.path.exists(self.file_name):
-                    os.remove(self.file_name)
-                torch.save(model.state_dict(), self.file_name)
-                print(f"save trained model")
+
+        if self.trainer_config["warm_up"] and self.trainer_config["warm_up_para"] == 1:
+            if os.path.exists(self.file_name):
+                os.remove(self.file_name)
+            torch.save(model.state_dict(), self.file_name)
+            print(f"save trained model")
 
         return model
 

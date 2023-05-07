@@ -54,9 +54,9 @@ if __name__ == "__main__":
         trainer_config = json.load(f)
 
     # os.environ["WANDB_SILENT"] = "true"
-    run_name = "%s, embed_model = %s, classifier_model=%s, warmup=%s, warmup_para=%s" % (
+    run_name = "%s, embed_model = %s, classifier_model=%s, warmup=%s, warmup_para=%s, mixup_coef=%s" % (
         strategy_config["strategy_name"], embed_model_config["model_name"], classifier_model_config["model_name"],
-        trainer_config["warm_up"], trainer_config["warm_up_para"])
+        trainer_config["warm_up"], trainer_config["warm_up_para"], trainer_config["mixup_coef"])
     wandb.init(project="Active Learning, %s, Batch Size=%d" % (dataset_name, batch_size), entity=wandb_name,
                name=run_name, config=vars(args))
 

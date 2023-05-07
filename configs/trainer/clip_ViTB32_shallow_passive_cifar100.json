@@ -6,6 +6,8 @@
   "optim_name": "Adam",
   "warm_up": false,
   "warm_up_para": 1,
+  "mixup": true,
+  "mixup_coef": 0.5,
   "wd": 5e-5,
   "lr": 1e-3,
   "max_epoch": 20,
