@@ -12,5 +12,6 @@
   "max_epoch": 10,
   "train_batch_size": 512,
   "test_batch_size": 100,
-  "num_workers": 10
+  "num_workers": 10,
+  "fs": true
 }

@@ -1,8 +1,3 @@
-# The following code is directly forked from:
-# https://github.com/microsoft/Semi-supervised-learning
-# -----------------------------------------------------------------------------
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
 # Code in this file is adapted from rpmcruz/autoaugment
 # https://github.com/rpmcruz/autoaugment/blob/master/transformations.py
 # This code is modified version of one of ildoonet, for randaugmentation of fixmatch.
@@ -11,8 +6,6 @@ import random
 
 import PIL, PIL.ImageOps, PIL.ImageEnhance, PIL.ImageDraw
 import numpy as np
-import torch
-import torch.nn.functional as F
 from PIL import Image
 
 
@@ -54,11 +47,10 @@ def Posterize(img, v):  # [4, 8]
 
 
 def Rotate(img, v):  # [-30, 30]
-    #assert -30 <= v <= 30
-    #if random.random() > 0.5:
+    # assert -30 <= v <= 30
+    # if random.random() > 0.5:
     #    v = -v
     return img.rotate(v)
-
 
 
 def Sharpness(img, v):  # [0.1,1.9]
@@ -67,45 +59,45 @@ def Sharpness(img, v):  # [0.1,1.9]
 
 
 def ShearX(img, v):  # [-0.3, 0.3]
-    #assert -0.3 <= v <= 0.3
-    #if random.random() > 0.5:
+    # assert -0.3 <= v <= 0.3
+    # if random.random() > 0.5:
     #    v = -v
     return img.transform(img.size, PIL.Image.AFFINE, (1, v, 0, 0, 1, 0))
 
 
 def ShearY(img, v):  # [-0.3, 0.3]
-    #assert -0.3 <= v <= 0.3
-    #if random.random() > 0.5:
+    # assert -0.3 <= v <= 0.3
+    # if random.random() > 0.5:
     #    v = -v
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, v, 1, 0))
 
 
 def TranslateX(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
-    #assert -0.3 <= v <= 0.3
-    #if random.random() > 0.5:
+    # assert -0.3 <= v <= 0.3
+    # if random.random() > 0.5:
     #    v = -v
     v = v * img.size[0]
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0))
 
 
 def TranslateXabs(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
-    #assert v >= 0.0
-    #if random.random() > 0.5:
+    # assert v >= 0.0
+    # if random.random() > 0.5:
     #    v = -v
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0))
 
 
 def TranslateY(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
-    #assert -0.3 <= v <= 0.3
-    #if random.random() > 0.5:
+    # assert -0.3 <= v <= 0.3
+    # if random.random() > 0.5:
     #    v = -v
     v = v * img.size[1]
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v))
 
 
 def TranslateYabs(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
-    #assert 0 <= v
-    #if random.random() > 0.5:
+    # assert 0 <= v
+    # if random.random() > 0.5:
     #    v = -v
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v))
 
@@ -115,7 +107,7 @@ def Solarize(img, v):  # [0, 256]
     return PIL.ImageOps.solarize(img, v)
 
 
-def Cutout(img, v):  #[0, 60] => percentage: [0, 0.2] => change to [0, 0.5]
+def Cutout(img, v):  # [0, 60] => percentage: [0, 0.2] => change to [0, 0.5]
     assert 0.0 <= v <= 0.5
     if v <= 0.:
         return img
@@ -144,8 +136,8 @@ def CutoutAbs(img, v):  # [0, 60] => percentage: [0, 0.2]
     PIL.ImageDraw.Draw(img).rectangle(xy, color)
     return img
 
-    
-def augment_list():  
+
+def augment_list():
     l = [
         (AutoContrast, 0, 1),
         (Brightness, 0.05, 0.95),
@@ -164,7 +156,8 @@ def augment_list():
     ]
     return l
 
-def augment_list_no_color():  
+
+def augment_list_no_color():
     l = [
         # (AutoContrast, 0, 1),
         (Brightness, 0.05, 0.95),
@@ -183,40 +176,21 @@ def augment_list_no_color():
     ]
     return l
 
-    
+
 class RandAugment:
     def __init__(self, n, m, exclude_color_aug=False):
         self.n = n
-        self.m = m      # [0, 30] in fixmatch, deprecated.
+        self.m = m  # [0, 30] in fixmatch, deprecated.
         if not exclude_color_aug:
             self.augment_list = augment_list()
         else:
             self.augment_list = augment_list_no_color()
 
-
-        
     def __call__(self, img):
         ops = random.choices(self.augment_list, k=self.n)
         for op, min_val, max_val in ops:
-            val = min_val + float(max_val - min_val)*random.random()
-            img = op(img, val) 
-        cutout_val = random.random() * 0.5 
-        img = Cutout(img, cutout_val) #for fixmatch
+            val = min_val + float(max_val - min_val) * random.random()
+            img = op(img, val)
+        cutout_val = random.random() * 0.5
+        img = Cutout(img, cutout_val)  # for fixmatch
         return img
-
-    
-if __name__ == '__main__':
-    # randaug = RandAugment(3,5)
-    # print(randaug)
-    # for item in randaug.augment_list:
-    #     print(item)
-    import os
-
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-    img = PIL.Image.open('./u.jpg')
-    randaug = RandAugment(3,6)
-    img = randaug(img)
-    import matplotlib
-    from matplotlib import pyplot as plt 
-    plt.imshow(img)
-    plt.show()

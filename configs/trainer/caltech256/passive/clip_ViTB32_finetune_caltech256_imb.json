@@ -16,5 +16,6 @@
   "clip_grad": 1.0,
   "early_stop": true,
   "patience": 5,
-  "mixup": 0
+  "mixup": 0,
+  "fs": true
 }

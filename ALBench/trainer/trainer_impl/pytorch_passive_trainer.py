@@ -40,8 +40,11 @@ class PyTorchPassiveTrainer(Trainer):
         optimizer = self.trainer_config["optim_fn"](params)
         total_steps = self.trainer_config["max_epoch"] * \
                       len(self.dataset.labeled_idxs()) // self.trainer_config["train_batch_size"]
-        scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps) \
-            if "scheduler_fn" in self.trainer_config else None
+
+        if "scheduler_fn" in self.trainer_config:
+            scheduler = self.trainer_config["scheduler_fn"](optimizer, total_steps)
+        else:
+            scheduler = None
 
         # initialize the early_stopping object
         if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
@@ -55,6 +58,27 @@ class PyTorchPassiveTrainer(Trainer):
             assert not (self.trainer_config["use_embeddings"] and self.model_config["use_customized_transform"]), \
                 "Customized transform is only supported for non-embedding models."
         return model, params, loss_fn, max_epoch, optimizer, scheduler, early_stopping
+
+    def check_early_stop(self, early_stopping, model):
+        if early_stopping is not None:
+            # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
+            # checkpoint of the current model.
+            _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
+            early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
+            if early_stopping.early_stop:
+                print("Early stopping.")
+                return True
+        return False
+
+    @staticmethod
+    def scheduler_step(scheduler, counter):
+        if scheduler is not None:
+            try:
+                scheduler(counter)
+            except:
+                scheduler.step(counter)
+            counter += 1
+        return counter
 
     def train(self, finetune_model=None, finetune_config=None):
         model, params, loss_fn, max_epoch, optimizer, scheduler, early_stopping = self.init_train(finetune_model)
@@ -77,32 +101,35 @@ class PyTorchPassiveTrainer(Trainer):
 
             class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)
             class_weights = torch.from_numpy(class_weights).float().cuda()
-            # Only use labeled examples for training.
-            cur_train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
-            loader = DataLoader(cur_train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
-                                num_workers=self.trainer_config["num_workers"],
-                                drop_last=(len(train_dataset) >= self.trainer_config["train_batch_size"]))
+
+            if epoch == 0 or ("use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]):
+                # Only use labeled examples for training.
+                cur_train_dataset = Subset(train_dataset, self.dataset.labeled_idxs())
+                loader = DataLoader(cur_train_dataset, batch_size=self.trainer_config["train_batch_size"], shuffle=True,
+                                    num_workers=self.trainer_config["num_workers"],
+                                    drop_last=(len(train_dataset) >= self.trainer_config["train_batch_size"]))
 
             for img, target, *other in tqdm(loader, desc="Batch Index"):
-                img, target = img.float().cuda(), target.float().cuda()          
+                img, target = img.float().cuda(), target.float().cuda()
                 if mixup_fn is not None:
-                    # Since the target is one-hot and the mixup function accepts class index only, we need to convert it to the class index.
-                    target = torch.argmax(target, dim=1) 
+                    # Since the target is one-hot and the mixup function accepts class index only, we need to convert it
+                    # to the class index.
+                    target = torch.argmax(target, dim=1)
                     img, target = mixup_fn(img, target)
 
                 with torch.cuda.amp.autocast():
                     if "init_freeze" in self.trainer_config and self.trainer_config["init_freeze"] > epoch:
-                        if not self.model_config["ret_emb"]:
-                            pred = model(img, ret_features=False, freeze=True).squeeze(-1)
-                        else:
+                        if self.model_config["ret_emb"]:
                             pred, _ = model(img, ret_features=True, freeze=True)
                             pred = pred.squeeze(-1)
-                    else:
-                        if not self.model_config["ret_emb"]:
-                            pred = model(img, ret_features=False).squeeze(-1)
                         else:
+                            pred = model(img, ret_features=False, freeze=True).squeeze(-1)
+                    else:
+                        if self.model_config["ret_emb"]:
                             pred, _ = model(img, ret_features=True)
                             pred = pred.squeeze(-1)
+                        else:
+                            pred = model(img, ret_features=False).squeeze(-1)
 
                     if "weighted" in self.trainer_config and self.trainer_config["weighted"]:
                         loss = loss_fn(pred, target, weight=class_weights)
@@ -116,30 +143,10 @@ class PyTorchPassiveTrainer(Trainer):
                     nn.utils.clip_grad_norm_(params, self.trainer_config["clip_grad"])
                 optimizer.step()
 
-                if self.check_early_stop(early_stopping, model):
-                    break
+            if self.check_early_stop(early_stopping, model):
+                break
 
         return model
-
-    def check_early_stop(self, early_stopping, model):
-        if early_stopping is not None:
-            # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
-            # checkpoint of the current model.
-            _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
-            early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
-            if early_stopping.early_stop:
-                print("Early stopping.")
-                return True
-        return False
-
-    def scheduler_step(self, scheduler, counter):
-        if scheduler is not None:
-            try:
-                scheduler(counter)
-            except:
-                scheduler.step(counter)
-            counter += 1
-        return counter
 
     def _test(self, dataset_split, model, **kwargs):
         model.eval()

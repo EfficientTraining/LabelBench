@@ -68,8 +68,7 @@ class Trainer:
         :param Optional[torch.nn.Module] finetune_model: Warm start model if indicated.
         :param Optional[Dict] finetune_config: Warm start model hyper-parameters.
         """
-        raise NotImplementedError(
-            "Subclass does not have implementation of training function.")
+        raise NotImplementedError("Subclass does not have implementation of training function.")
 
     def evaluate_on_train(self, model, mc_dropout=False):
         self._eval_results[0], self._eval_results[3], self._eval_results[6], self._eval_results[9] = \
@@ -96,5 +95,4 @@ class Trainer:
         return metric_dict
 
     def _test(self, dataset, model, **kwargs):
-        raise NotImplementedError(
-            "Subclass does not have implementation of testing function.")
+        raise NotImplementedError("Subclass does not have implementation of testing function.")

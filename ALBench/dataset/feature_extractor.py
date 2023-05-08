@@ -55,19 +55,15 @@ def get_feature_helper(model_fn, embed_model_config, dataset, seed, batch_size, 
             dataset.set_transform(transform_weak)
             dataset.set_strong_transform(transform_strong)
 
-        loader = DataLoader(dataset, batch_size=batch_size,
-                            num_workers=num_workers)
+        loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
         model.eval()
-        features = np.zeros(
-            (len(dataset), model.get_embedding_dim()), dtype=float)
+        features = np.zeros((len(dataset), model.get_embedding_dim()), dtype=float)
         if use_strong:
-            features_strong = np.zeros(
-                (len(dataset), model.get_embedding_dim()), dtype=float)
+            features_strong = np.zeros((len(dataset), model.get_embedding_dim()), dtype=float)
         counter = 0
 
         strong_str = "_strong" if use_strong else ""
-        print(
-            f"Start extracting features... and save to {file_name}_features{strong_str}.pt")
+        print(f"Start extracting features... and save to {file_name}_features{strong_str}.pt")
         if seed is not None:
             random.seed(random.RandomState(seed).randint(1000000000))
         for img, _, *other in tqdm(loader):
@@ -79,16 +75,13 @@ def get_feature_helper(model_fn, embed_model_config, dataset, seed, batch_size, 
                 _, feature = model(img)
                 if use_strong:
                     _, feature_strong = model(img_strong)
-            features[counter: (counter + len(feature))
-                     ] = feature.data.cpu().numpy()
+            features[counter: (counter + len(feature))] = feature.data.cpu().numpy()
             if use_strong:
-                features_strong[counter: (
-                    counter + len(feature))] = feature_strong.data.cpu().numpy()
+                features_strong[counter: (counter + len(feature))] = feature_strong.data.cpu().numpy()
             counter += len(feature)
 
         if use_strong:
-            torch.save((features, features_strong),
-                       f'{file_name}_features_strong.pt', pickle_protocol=4)
+            torch.save((features, features_strong), f'{file_name}_features_strong.pt', pickle_protocol=4)
             features = (features, features_strong)
         else:
             torch.save(features, f'{file_name}_features.pt', pickle_protocol=4)

@@ -12,5 +12,5 @@
   "patience": 5,
   "train_batch_size": 32,
   "test_batch_size": 100,
-  "num_workers": 5
+  "num_workers": 20
 }

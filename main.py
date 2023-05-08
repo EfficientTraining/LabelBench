@@ -33,7 +33,6 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
     torch.backends.cudnn.benchmark = True
     np.random.seed(seed + 42)
-    torch.multiprocessing.set_sharing_strategy('file_system')
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     wandb_name = args.wandb_name
@@ -57,6 +56,10 @@ if __name__ == "__main__":
         strategy_config["strategy_name"], embed_model_config["model_name"], classifier_model_config["model_name"])
     wandb.init(project="Active Learning, %s, Batch Size=%d" % (dataset_name, batch_size), entity=wandb_name,
                name=run_name, config=vars(args))
+
+    # Use file system for data loading of large datasets.
+    if "fs" in trainer_config and trainer_config["fs"]:
+        torch.multiprocessing.set_sharing_strategy('file_system')
 
     # Retrieve ALDataset and number of classes.
     dataset = get_dataset(dataset_name, args.data_dir)
