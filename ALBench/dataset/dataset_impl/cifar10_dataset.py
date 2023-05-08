@@ -7,6 +7,7 @@ from torchvision.datasets import CIFAR10
 from ALBench.skeleton.dataset_skeleton import DatasetOnMemory, register_dataset, LabelType, TransformDataset
 from ALBench.dataset.dataset_impl.label_name.classnames import get_classnames
 
+
 @register_dataset("cifar10_imb", LabelType.MULTI_CLASS)
 def get_cifar10_imb_dataset(n_class, data_dir, *args):
     train_transform = transforms.Compose([

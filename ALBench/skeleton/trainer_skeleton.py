@@ -12,7 +12,7 @@ class Trainer:
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         """
         :param Dict trainer_config: Dictionary of hyper-parameters of the trainer.
-        
+
             trainer_name str: Name of the trainer. 
             use_embeddings bool: Whether to use embeddings for training or use the original data. If not specified, default value is False.
             loss_fn str: Name of the loss function for training. 
@@ -57,7 +57,8 @@ class Trainer:
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""
         super().__init_subclass__(**kwargs)
-        trainers[cls.trainer_name] = cls
+        if cls.trainer_name is not None:
+            trainers[cls.trainer_name] = cls
 
     def train(self, finetune_model=None, finetune_config=None):
         """
