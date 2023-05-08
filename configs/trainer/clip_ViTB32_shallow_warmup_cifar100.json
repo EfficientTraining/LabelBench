@@ -7,7 +7,7 @@
   "warm_up": true,
   "warm_up_para": 1,
   "mixup": true,
-  "mixup_coef": 0.5,
+  "mixup_coef": 0.1,
   "wd": 5e-5,
   "lr": 1e-3,
   "max_epoch": 20,
