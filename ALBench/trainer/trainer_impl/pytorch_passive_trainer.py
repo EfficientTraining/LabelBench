@@ -182,11 +182,8 @@ class PyTorchPassiveTrainer(Trainer):
         for img, target in loader:
             img, target = img.float().cuda(), target.float().cuda()
             with torch.no_grad(), torch.cuda.amp.autocast():
-                if not self.model_config["ret_emb"]:
-                    pred = model(img)
-                else:
-                    pred, emb = model(img, ret_features=True)
-                    embs.append(emb.cpu().numpy())
+                pred, emb = model(img, ret_features=True)
+                embs.append(emb.cpu().numpy())
                 pred = pred.squeeze(-1)
                 loss = self.trainer_config["loss_fn"](pred, target)
             preds[counter: (counter + len(pred))] = self.trainer_config["pred_fn"](pred).cpu().numpy()

@@ -29,4 +29,4 @@ class ModifiedShallow(nn.Module):
 def init_MLP(model_config):
     return ModifiedShallow(model_config["input_dim"], model_config["num_output"],
                            model_config["num_hidden"] if "num_hidden" in model_config else 2,
-                           ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False, )
+                           ret_emb=model_config["ret_emb"] if "ret_emb" in model_config else False)
