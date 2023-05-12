@@ -67,7 +67,7 @@ class BADGESampling(Strategy):
         probs[np.arange(n), max_inds] += 1
         probs = probs[unlabeled]
         prob_norms_square = np.sum(probs ** 2, axis=-1)
-        for i in range(budget):
+        for i in tqdm(range(budget)):
             chosen, mu, D2 = init_centers((probs, prob_norms_square), (embs, emb_norms_square), chosen, mu, D2)
             unlabeled_set.remove(unlabeled[chosen[-1]])
         query_idxs = [unlabeled[i] for i in chosen]

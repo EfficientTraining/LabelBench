@@ -177,19 +177,21 @@ class PyTorchPassiveTrainer(Trainer):
         preds = np.zeros((len(dataset), self.dataset.num_classes), dtype=float)
         labels = np.zeros((len(dataset), self.dataset.num_classes), dtype=float)
         losses = np.zeros(len(dataset), dtype=float)
-        embs = []
+        embs = None
         counter = 0
         for img, target in loader:
             img, target = img.float().cuda(), target.float().cuda()
             with torch.no_grad(), torch.cuda.amp.autocast():
                 pred, emb = model(img, ret_features=True)
-                embs.append(emb.cpu().numpy())
+                if embs is None:
+                    embs = np.zeros((len(dataset), emb.shape[-1]), dtype=float)
                 pred = pred.squeeze(-1)
                 loss = self.trainer_config["loss_fn"](pred, target)
             preds[counter: (counter + len(pred))] = self.trainer_config["pred_fn"](pred).cpu().numpy()
             labels[counter: (counter + len(pred))] = target.cpu().numpy()
             losses[counter: (counter + len(pred))] = loss.cpu().numpy()
+            embs[counter: (counter + len(pred))] = emb.cpu().numpy()
             counter += len(pred)
         assert counter == len(preds)
         model.train()
-        return preds, labels, losses, np.concatenate(embs, axis=0) if len(embs) > 0 else None
+        return preds, labels, losses, embs
