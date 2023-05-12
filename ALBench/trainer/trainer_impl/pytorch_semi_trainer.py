@@ -119,4 +119,6 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         elif self.use_strong:
             train_dataset.set_strong_transform(None)
 
+        if early_stopping is not None:
+            model.load_state_dict(early_stopping.best_state_dict)
         return model

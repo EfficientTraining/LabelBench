@@ -64,7 +64,7 @@ class PyTorchPassiveTrainer(Trainer):
             # Early_stopping needs the validation loss to check if it has decreased. If it has, it will make a
             # checkpoint of the current model.
             _, _, valid_losses, _ = self._test("val", model, **self.trainer_config)
-            early_stopping(valid_losses.mean(), model=None)  # Currently we don't save the model.
+            early_stopping(valid_losses.mean(), model=model)
             if early_stopping.early_stop:
                 print("Early stopping.")
                 return True
@@ -146,6 +146,8 @@ class PyTorchPassiveTrainer(Trainer):
             if self.check_early_stop(early_stopping, model):
                 break
 
+        if early_stopping is not None:
+            model.load_state_dict(early_stopping.best_state_dict)
         return model
 
     def _test(self, dataset_split, model, **kwargs):
