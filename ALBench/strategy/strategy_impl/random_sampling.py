@@ -11,7 +11,5 @@ class RandomSampling(Strategy):
         self.input_types = set()
 
     def select(self, trainer, budget):
-        labeled_set = set(list(self.dataset.labeled_idxs()))
-        all_set = set(list(range(len(self.dataset))))
-        unlabeled = np.array(list(all_set - labeled_set))
+        unlabeled = self.dataset.unlabeled_idxs()
         return np.random.choice(unlabeled, budget, replace=False)

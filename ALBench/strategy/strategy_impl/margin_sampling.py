@@ -12,9 +12,7 @@ class MarginSampling(Strategy):
 
     def select(self, trainer, budget):
         preds = trainer.retrieve_inputs(self.input_types)[0]
-        labeled_set = set(list(self.dataset.labeled_idxs()))
-        all_set = set(list(range(len(self.dataset))))
-        unlabeled = np.array(list(all_set - labeled_set))
+        unlabeled = self.dataset.unlabeled_idxs()
         n_class = preds.shape[1]
         if n_class > 2:
             preds_unlabeled = preds[unlabeled]

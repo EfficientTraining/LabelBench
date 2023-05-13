@@ -48,9 +48,7 @@ class BADGESampling(Strategy):
 
     def select(self, trainer, budget):
         preds, embs = trainer.retrieve_inputs(self.input_types)
-        labeled_set = set(list(self.dataset.labeled_idxs()))
-        all_set = set(list(range(len(self.dataset))))
-        unlabeled = np.array(list(all_set - labeled_set))
+        unlabeled = self.dataset.unlabeled_idxs()
         unlabeled_set = set(unlabeled)
         chosen = []
         n = len(self.dataset)
