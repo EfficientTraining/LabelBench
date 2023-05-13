@@ -11,9 +11,9 @@ from ALBench.dataset.feature_extractor import make_semi_transforms
 class PyTorchSemiTrainer(PyTorchPassiveTrainer):
     trainer_name = None
 
-    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
+    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, feature_extractor):
         super().__init__(trainer_config, dataset, model_fn,
-                         model_config, metric, get_feature_fn)
+                         model_config, metric, feature_extractor)
         self.use_strong = None
 
     def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us):
@@ -50,7 +50,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-                self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn,
+                self.dataset.update_embedding_dataset(epoch=epoch, feature_extractor=self.feature_extractor,
                                                       use_strong=self.use_strong)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
 
@@ -115,7 +115,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
 
         # Set embeddings back to not using semi-supervised transformation for evaluation.
         if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-            self.dataset.update_embedding_dataset(epoch=0, get_feature_fn=self.get_feature_fn, use_strong=False)
+            self.dataset.update_embedding_dataset(epoch=0, feature_extractor=self.feature_extractor, use_strong=False)
         elif self.use_strong:
             train_dataset.set_strong_transform(None)
 
