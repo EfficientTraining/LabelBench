@@ -1,6 +1,6 @@
 {
   "strategy_name" : "bait",
-  "batch_size": 1,
+  "batch_size": 10,
   "max_iter": 2,
   "lamb": 0.1,
   "fixed_step": true,

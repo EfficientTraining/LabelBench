@@ -17,7 +17,7 @@ def compute_single_hessian_withExpGradEmbedding(x, p, weight=None, ret_embed=Fal
     x, p = x.unsqueeze(1), p.unsqueeze(1) # x_single.size() = [embed_dim,1], p_single.size() = [n_classes,1]
     # Compute a n_class number of gradient for cross-entropy loss. 
     # The explicit form of grad of [L(x,y, W)]_{w_i} = \one[i = y]x + p_i * x. Each column corresponds to a class (y).
-    exp_grad_embed = torch.kron(torch.eye(p.shape[0]).cuda() - p.repeat(1,p.shape[0]), x)
+    exp_grad_embed = torch.kron(torch.eye(p.shape[0]) - p.repeat(1,p.shape[0]), x)
     # Scale the gradient (each column) with the square root of the probability of each class. 
     # Therefore, exp_grad_embed @ exp_grad_embed.mT leads to the expectation over y.
     # The explicit form of each column : [\sqrt{p_y}\one[i = y]x + \sqrt{p_y} p_i * x]_{i=1,...,n_class}. 
@@ -46,6 +46,7 @@ class BAIT(Strategy):
         self.grad_comp_ratio = strategy_config["grad_comp_ratio"] if "grad_comp_ratio" in strategy_config else 1 # Instead of computing gradient for all samples, we only compute gradient for a random subset of samples to accelerate.
         self.curInv = 0 # Current inverse of the fisher information matrix on the selected samples. 
         self.fisher_unlabeled = None # Fisher information matrix on the unlabeled set.
+        self.batch_size = strategy_config["batch_size"] if "batch_size" in strategy_config else 1 # Batch size for computing the fisher information matrix.
 
         # The whole algorithm is trying to minimize the following optimization problem with fixed selection budget.
         # trace((self.curInv)@ self.fisher_unlabeled)
@@ -60,35 +61,34 @@ class BAIT(Strategy):
         ## Update the fisher information for unlabeled set.
         # Instead of computing grad for all the unlabeled samples,
         # we randomly sample a portion of the samples to compute grad and optimize.
-        fisher_est_indices = np.random.choice(unlabeled, len(unlabeled)//self.fisher_comp_ratio, replace=False) #TODO: 3
+        fisher_est_indices = np.random.choice(unlabeled, len(unlabeled)//self.fisher_comp_ratio, replace=False)
         self.fisher_unlabeled = self.compute_fisher(fisher_est_indices, preds, embs)
         ## Compute the distribution for unlabeled set by running Frank-Wolfe.
         select_distribution = self.frank_wolfe(preds, embs, unlabeled, budget)
 
         # ## Sanity check: Verify if the inverse computed by addition method is same as the true inverse. Not used in real algorithm.
         # curFisher = self.compute_fisher(unlabeled, preds, embs, weights=select_distribution[unlabeled]) \
-        #     + torch.eye(self.fisher_unlabeled.shape[0]).cuda()*self.lamb
+        #     + torch.eye(self.fisher_unlabeled.shape[0])*self.lamb
         # currentValue = torch.trace(torch.linalg.solve(curFisher, self.fisher_unlabeled))
         # print("Final Current Value: {}".format(currentValue))
 
         selected = np.random.choice(list(all_set), budget, p=select_distribution/select_distribution.sum(), replace=False)
         return selected
     
-    def compute_fisher(self, indices, preds, embs, weights = None, batch_size = 1, num_workers = 4):
+    def compute_fisher(self, indices, preds, embs, weights = None, num_workers = 4):
         if weights is None:  
             weights = np.ones_like(indices)
         else:
             assert len(weights) == len(indices), "Length of weights should be the same as length of indices."
-        weights = torch.Tensor(weights).cuda()
+        weights = torch.Tensor(weights)
         
         embs = torch.from_numpy(embs[indices])
         preds = torch.from_numpy(preds[indices])
         total_fisher = 0
         count = 0
-        # print("Computing Fisher Information for given data ...")
-        for i in tqdm(range(0, len(indices), batch_size)):
-            batch_embs = embs[i: min(i+batch_size,len(indices))].cuda().float()
-            batch_preds = preds[i: min(i+batch_size,len(indices))].cuda().float()
+        for i in tqdm(range(0, len(indices), self.batch_size), desc="Computing Fisher Information"):
+            batch_embs = embs[i: min(i+self.batch_size,len(indices))].float()
+            batch_preds = preds[i: min(i+self.batch_size,len(indices))].float()
             batch_probs = F.softmax(batch_preds, dim=1)
             batch_fisher = vmap(self.compute_single_hessian_fn)(batch_embs, batch_probs, weights[count:count+len(batch_embs)])
             total_fisher = total_fisher + torch.sum(batch_fisher, dim=0)
@@ -96,7 +96,6 @@ class BAIT(Strategy):
 
         total_fisher = total_fisher / weights.sum()
         del batch_fisher
-        torch.cuda.empty_cache()
         gc.collect()
         
         return total_fisher
@@ -128,10 +127,8 @@ class BAIT(Strategy):
             step+=1
             # print("Step: {}, alpha: {}, max |grad|: {}".format(step, alpha, topK_vals[0]))
             del grads
-            torch.cuda.empty_cache()
 
         del self.curInv
-        torch.cuda.empty_cache()
 
         return  next_distribution
     
@@ -140,13 +137,12 @@ class BAIT(Strategy):
         
         # Randomly sample a subset and initialize its regularized inverse fisher.
         if base_beta == 1:
-            newFisher_regu = self.compute_fisher(new_indices, preds, embs) + torch.eye(self.fisher_unlabeled.shape[0]).cuda()*self.lamb
+            newFisher_regu = self.compute_fisher(new_indices, preds, embs) + torch.eye(self.fisher_unlabeled.shape[0])*self.lamb
             # print("Updating the inverse for given data ...")
             self.curInv = torch.linalg.inv(newFisher_regu)
             currentValue = torch.trace(self.curInv@self.fisher_unlabeled)
             print("Current Value: {}".format(currentValue))
             del newFisher_regu
-            torch.cuda.empty_cache()
         else:
             prevValue = None
             currentValue = None
@@ -157,50 +153,45 @@ class BAIT(Strategy):
                 currentValue = torch.trace(self.curInv@self.fisher_unlabeled)
                 print("With alpha = {}, Current Value: {}".format(alpha, currentValue))
                 alpha +=  base_beta
-                torch.cuda.empty_cache()
                 # If oneStep, then we use pre-scheduled step size (e.g. 2/(2+step)).
                 # Otherwise, continue while loop to do linear search to find the best alpha.
                 if if_fixed_step: break
             alpha -= base_beta
         return alpha
     
-    def update_inverse(self, alpha, new_indices, preds, embs, batch_size = 1, num_workers = 4):
+    def update_inverse(self, alpha, new_indices, preds, embs, num_workers = 4):
 
         embs = torch.from_numpy(embs[new_indices])
         preds = torch.from_numpy(preds[new_indices])
         count = 0
-        print("Updating the inverse for given data ...")
         self.curInv = (1/(1-alpha))*self.curInv
 
         # Add the new fisher into inverse by using woodbury formula one by one.
-        for i in tqdm(range(0, len(new_indices), batch_size)):
-            batch_embs = embs[i: min(i+batch_size,len(new_indices))].cuda().float()
-            batch_preds = preds[i: min(i+batch_size,len(new_indices))].cuda().float()
+        for i in tqdm(range(0, len(new_indices), self.batch_size), desc="Updating the inverse"):
+            batch_embs = embs[i: min(i+self.batch_size,len(new_indices))].float()
+            batch_preds = preds[i: min(i+self.batch_size,len(new_indices))].float()
             batch_probs = F.softmax(batch_preds, dim=1)
             exp_grad_embed = vmap(self.compute_single_hessian_fn)(batch_embs, batch_probs, ret_embed=True)
-            exp_grad_embed = exp_grad_embed.view(exp_grad_embed.shape[0]*exp_grad_embed.shape[1], exp_grad_embed.shape[2])
+            exp_grad_embed = exp_grad_embed.contiguous().view(exp_grad_embed.shape[0]*exp_grad_embed.shape[1], exp_grad_embed.shape[2])
             self.curInv = self.curInv - alpha/len(new_indices)*self.curInv@exp_grad_embed.mT\
-                @torch.linalg.solve(torch.eye(exp_grad_embed.shape[0]).cuda() +  alpha/len(new_indices)*exp_grad_embed@self.curInv@exp_grad_embed.mT, exp_grad_embed@self.curInv) 
-            torch.cuda.empty_cache()
+                @torch.linalg.solve(torch.eye(exp_grad_embed.shape[0]) +  alpha/len(new_indices)*exp_grad_embed@self.curInv@exp_grad_embed.mT, exp_grad_embed@self.curInv) 
             count += len(batch_embs)
 
         # Because we care about the (fisher + \lambda*I)^{-1} and we have applied ((1-\alpha)*(fisher + \lambda*I))^{-1},
         # we need to add \alpha*\lambda*I back to the inverse.
         # We use the same approach as above to add the one-hot vectors one by one.
         for i in tqdm(range(exp_grad_embed.shape[1]//exp_grad_embed.shape[0]), desc="Reg Batch Index"):
-            tmp = torch.zeros(exp_grad_embed.shape[1],exp_grad_embed.shape[0]).cuda()
-            tmp[i*exp_grad_embed.shape[0]:(i+1)*exp_grad_embed.shape[0],:] = torch.eye(exp_grad_embed.shape[0]).cuda()
+            tmp = torch.zeros(exp_grad_embed.shape[1],exp_grad_embed.shape[0])
+            tmp[i*exp_grad_embed.shape[0]:(i+1)*exp_grad_embed.shape[0],:] = torch.eye(exp_grad_embed.shape[0])
             self.curInv = self.curInv - alpha*self.lamb*self.curInv@tmp\
-                        @torch.linalg.solve(torch.eye(exp_grad_embed.shape[0]).cuda()+ alpha*self.lamb*tmp.mT@self.curInv@tmp, tmp.mT@self.curInv) 
+                        @torch.linalg.solve(torch.eye(exp_grad_embed.shape[0])+ alpha*self.lamb*tmp.mT@self.curInv@tmp, tmp.mT@self.curInv) 
             del tmp
-            torch.cuda.empty_cache()
 
         del exp_grad_embed
-        torch.cuda.empty_cache()
         gc.collect()
 
     
-    def compute_grad_forOP(self, indices, preds, embs, batch_size = 1, num_workers = 4):
+    def compute_grad_forOP(self, indices, preds, embs, num_workers = 4):
 
         embs = torch.from_numpy(embs[indices])
         preds = torch.from_numpy(preds[indices])
@@ -209,9 +200,9 @@ class BAIT(Strategy):
         print("Computing Gradient for the target function inv(V)U on each given sample ...")
 
         # Add the new fisher into inverse by using woodbury formula one by one.
-        for i in tqdm(range(0, len(indices), batch_size)):
-            batch_embs = embs[i: min(i+batch_size,len(indices))].cuda().float()
-            batch_preds = preds[i: min(i+batch_size,len(indices))].cuda().float()
+        for i in tqdm(range(0, len(indices), self.batch_size)):
+            batch_embs = embs[i: min(i+self.batch_size,len(indices))].float()
+            batch_preds = preds[i: min(i+self.batch_size,len(indices))].float()
             batch_probs = F.softmax(batch_preds, dim=1)
             def compute_single_grad(x, p):
                 exp_grad_embed_single = self.compute_single_hessian_fn(x, p, 1,ret_embed=True).float()
