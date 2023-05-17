@@ -1,3 +1,4 @@
 {
-    "strategy_name" : "coreset"
+    "strategy_name" : "coreset",
+    "working_memory_GB": 20
 }  
