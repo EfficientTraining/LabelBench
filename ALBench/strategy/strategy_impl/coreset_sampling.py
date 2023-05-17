@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import pairwise_distances
+from scipy.spatial import KDTree
 
 from ALBench.skeleton.active_learning_skeleton import Strategy, ALInput
 
@@ -18,8 +19,8 @@ class CoresetSampling(Strategy):
         if np.shape(X_set)[0] == 0:
             min_dist = np.tile(float("inf"), m)
         else:
-            dist_ctr = pairwise_distances(X, X_set)
-            min_dist = np.amin(dist_ctr, axis=1)
+            tree = KDTree(X_set)
+            min_dist, _ = tree.query(X, k=1)
 
         idxs = []
 
