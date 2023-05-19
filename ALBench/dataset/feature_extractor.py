@@ -10,32 +10,35 @@ from torchvision import transforms
 from ALBench.dataset.rand_augment import RandAugment
 
 
-class FeatureExtractor():
+class FeatureExtractor:
     def __init__(self, model_fn, file_name, embed_model_config):
 
-        self.model = model_fn(embed_model_config).cuda()
+        self.model = None
+        self.model_fn = model_fn
+        self.embed_model_config = embed_model_config
         self.file_name = file_name
-        self.batch_size = embed_model_config["inference_batch_size"] if "inference_batch_size" in embed_model_config else 128
+        self.batch_size = \
+            embed_model_config["inference_batch_size"] if "inference_batch_size" in embed_model_config else 128
         self.num_workers = embed_model_config["num_workers"] if "num_workers" in embed_model_config else 4
-        
+
         self.precomputed_features = {"train": None, "val": None, "test": None}
-        self.num_transform_seeds = embed_model_config["num_transform_seeds"] if "num_transform_seeds" in embed_model_config else 1
-        self.use_customized_transform = embed_model_config["use_customized_transform"] if "use_customized_transform" in embed_model_config else False
+        self.num_transform_seeds = \
+            embed_model_config["num_transform_seeds"] if "num_transform_seeds" in embed_model_config else 1
 
     def get_feature(self, dataset, dataset_split, epoch, use_strong):
-        use_features_on_memory = not(dataset_split == "train")
-        use_features_on_memory = use_features_on_memory or self.num_transform_seeds == 1 or (not self.use_customized_transform and not use_strong)
+        use_features_on_memory = (dataset_split != "train") or (self.num_transform_seeds == 1)
 
         # Only use strong transform on train set.
-        use_strong = use_strong and dataset_split == "train"
+        use_strong = use_strong and (dataset_split == "train")
 
-        if use_features_on_memory:
-            if self.precomputed_features[dataset_split] is None:
-                self.precomputed_features[dataset_split] = self.get_feature_helper(dataset, use_strong, dataset_split)
-            return self.precomputed_features[dataset_split] 
+        if use_features_on_memory and self.precomputed_features[dataset_split] is not None:
+            return self.precomputed_features[dataset_split]
         else:
             seed = epoch % self.num_transform_seeds
-            filename = f'{self.file_name}_{seed}_features_strong.pt' if use_strong else f'{self.file_name}_{seed}_features.pt'
+            if use_strong:
+                filename = f'{self.file_name}_{seed}_features_strong.pt'
+            else:
+                filename = f'{self.file_name}_{seed}_features_{dataset_split}.pt'
             print(f"Start extracting features... and save to {filename}")
             if os.path.exists(filename):
                 print(f"Loading features from {filename}")
@@ -43,18 +46,19 @@ class FeatureExtractor():
             else:
                 features = self.get_feature_helper(dataset, use_strong, dataset_split, seed=seed)
                 torch.save(features, filename, pickle_protocol=4)
+
+            if use_features_on_memory:
+                self.precomputed_features[dataset_split] = features
             return features
 
-
-    def get_feature_helper(self, dataset, use_strong, dataset_split, seed = None):
+    def get_feature_helper(self, dataset, use_strong, dataset_split, seed=None):
+        if self.model is None:
+            self.model = self.model_fn(self.embed_model_config).cuda()
 
         # Get model specific transform of dataset.
-        if self.use_customized_transform:
-            print("Update the transform of dataset to model's special preprocess.")
-            transform = self.model.get_preprocess(split=dataset_split)
-            dataset.set_transform(transform)
-        else:
-            transform = dataset.get_transform()
+        print("Update the transform of dataset to model's special preprocess.")
+        transform = self.model.get_preprocess(split=dataset_split)
+        dataset.set_transform(transform)
 
         if use_strong:
             transform_weak, transform_strong = make_semi_transforms(transform)
