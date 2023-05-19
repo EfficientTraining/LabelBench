@@ -37,8 +37,7 @@ class CoresetSampling(Strategy):
             idx = min_dist.argmax()
             idxs.append(idx)
             dist_new_ctr = pairwise_distances(X, X[[idx], :])
-            for j in range(m):
-                min_dist[j] = min(min_dist[j], dist_new_ctr[j, 0])
+            min_dist = np.minimum(min_dist, dist_new_ctr[:, 0])
 
         return idxs
     

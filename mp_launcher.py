@@ -18,6 +18,7 @@ parser.add_argument("--trainer_config", type=str, help="Path to trainer configur
 parser.add_argument("--strategies", type=str, nargs="+", help="Path to AL strategy configuration files.")
 parser.add_argument("--num_runs", type=int, default=4, help="Number of runs.")
 parser.add_argument("--run_per_device", type=int, default=1, help="Number of runs on each GPU.")
+parser.add_argument("--device_per_run", type=int, default=0, help="Number of GPUs for each run.")
 parser.add_argument("--gpu_masks", type=int, nargs="+", help="Which devices to run on.")
 parser.add_argument("--skip", type=int, default=0, help="Skip the specified number of experiments in the beginning.")
 args = parser.parse_args()
@@ -43,11 +44,23 @@ for strategy in args.strategies:
                    ]
         if counter >= args.skip:
             new_env = os.environ.copy()
-            new_env["CUDA_VISIBLE_DEVICES"] = str(
-                args.gpu_masks[(counter % (len(args.gpu_masks) * args.run_per_device)) // args.run_per_device])
-            processes.append(subprocess.Popen(command, env=new_env))
-            if len(processes) == len(args.gpu_masks) * args.run_per_device:
-                for p in processes:
-                    p.wait()
-                processes = []
+            if args.device_per_run > 0:
+                num_parallel_runs = len(args.gpu_masks) // args.device_per_run
+                assert num_parallel_runs > 0
+                new_env["CUDA_VISIBLE_DEVICES"] = \
+                    "".join([str(counter % num_parallel_runs * args.device_per_run + i) + "," for i in
+                             range(args.device_per_run)])[:-1]
+                processes.append(subprocess.Popen(command, env=new_env))
+                if len(processes) == num_parallel_runs:
+                    for p in processes:
+                        p.wait()
+                    processes = []
+            else:
+                new_env["CUDA_VISIBLE_DEVICES"] = str(
+                    args.gpu_masks[(counter % (len(args.gpu_masks) * args.run_per_device)) // args.run_per_device])
+                processes.append(subprocess.Popen(command, env=new_env))
+                if len(processes) == len(args.gpu_masks) * args.run_per_device:
+                    for p in processes:
+                        p.wait()
+                    processes = []
         counter += 1

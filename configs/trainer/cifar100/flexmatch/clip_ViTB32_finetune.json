@@ -6,15 +6,15 @@
   "optim_name": "AdamW",
   "scheduler_name": "CosineLR",
   "lr": 1e-5,
-  "wd": 1e-4,
+  "wd": 1e-5,
   "warmup_steps": 500,
-  "max_epoch": 10,
+  "max_epoch": 20,
   "early_stop": true,
-  "patience": 2,
-  "train_batch_size": 80,
+  "patience": 3,
+  "train_batch_size": 50,
   "test_batch_size": 1000,
-  "num_workers": 20,
+  "num_workers": 40,
   "p_cutoff": 0.95,
   "ulb_loss_ratio": 1.0,
-  "uratio": 5
+  "uratio": 3
 }
