@@ -9,7 +9,7 @@ class Trainer:
     Trainer class for training model on given (partially) datasets.
     """
 
-    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
+    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, feature_extractor):
         """
         :param Dict trainer_config: Dictionary of hyper-parameters of the trainer.
 
@@ -45,6 +45,7 @@ class Trainer:
         :param model_fn: Function for instantiating a model.
         :param Dict model_config: Dictionary of hyper-parameters for instantiating a model.
         :param Metric metric: Metric object for tracking performances.
+        :param FeatureExtractor feature_extractor: FeatureExtractor class for extracting embedding features from data.
         """
         self.trainer_config = trainer_config
         self.dataset = dataset
@@ -52,7 +53,7 @@ class Trainer:
         self.model_config = model_config
         self.metric = metric
         self._eval_results = [None for _ in range(12)]
-        self.get_feature_fn = get_feature_fn
+        self.feature_extractor = feature_extractor
 
     def __init_subclass__(cls, **kwargs):
         """Register trainer subclasses."""

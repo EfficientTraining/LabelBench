@@ -12,8 +12,8 @@ from ALBench.trainer.utils import EarlyStopping
 class PyTorchPassiveTrainer(Trainer):
     trainer_name = "pytorch_passive"
 
-    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
-        super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
+    def __init__(self, trainer_config, dataset, model_fn, model_config, metric, feature_extractor):
+        super().__init__(trainer_config, dataset, model_fn, model_config, metric, feature_extractor)
 
     def init_train(self, finetune_model):
         if finetune_model is None:
@@ -96,7 +96,7 @@ class PyTorchPassiveTrainer(Trainer):
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):
             # For each epoch, update the embedding dataset and use the saved embedding dataset epoch.
             if "use_embeddings" in self.trainer_config and self.trainer_config["use_embeddings"]:
-                self.dataset.update_embedding_dataset(epoch=epoch, get_feature_fn=self.get_feature_fn)
+                self.dataset.update_embedding_dataset(epoch=epoch, feature_extractor=self.feature_extractor)
                 train_dataset, _, _ = self.dataset.get_embedding_datasets()
 
             class_weights = 1. / np.clip(np.sum(self.dataset.get_train_labels(), axis=0), a_min=1, a_max=None)

@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from enum import Enum
 from torch.utils.data import Dataset
+from ALBench.dataset.feature_extractor import FeatureExtractor
 
 
 class LabelType(Enum):
@@ -167,22 +168,24 @@ class ALDataset:
         self.__train_labels = train_labels
         self.__val_labels = val_labels
         self.__test_labels = test_labels
+        self.feature_extractor = None
+
 
         self.classnames = classnames
 
-    def update_embedding_dataset(self, epoch, get_feature_fn, use_strong=False):
+    def update_embedding_dataset(self, epoch, feature_extractor, use_strong=False):
         """
         Update the embedding dataset with the updat_embed_dataset_fn and the current epoch.
 
         :param int epoch: current epoch, used to update the transform of the dataset.
-        :param callable update_embed_dataset_fn: function to update the embedding dataset.
+        :param FeatureExtractor feature_extractor: class to extract the embeddings.
         :param bool use_strong: Flag for getting weak and strong augmented embeddings for semi-supervised learning.
         """
-        assert callable(get_feature_fn), "Update_embed_dataset_fn must be a function."
+        assert isinstance(feature_extractor, FeatureExtractor), "Feature extractor must be a FeatureExtractor."
 
         for _, dataset_split in enumerate(["train", "val", "test"]):
             dataset = getattr(self, dataset_split + "_dataset")
-            feat_emb = get_feature_fn(dataset, dataset_split, epoch, use_strong)
+            feat_emb = feature_extractor.get_feature(dataset, dataset_split, epoch, use_strong)
             setattr(self, dataset_split + "_emb", feat_emb)
 
     def update_labeled_idxs(self, new_idxs):
