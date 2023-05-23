@@ -39,11 +39,11 @@ class FeatureExtractor:
                 filename = f'{self.file_name}_{seed}_features_strong.pt'
             else:
                 filename = f'{self.file_name}_{seed}_features_{dataset_split}.pt'
-            print(f"Start extracting features... and save to {filename}")
             if os.path.exists(filename):
                 print(f"Loading features from {filename}")
                 features = torch.load(filename)
             else:
+                print(f"Start extracting features... and save to {filename}")
                 features = self.get_feature_helper(dataset, use_strong, dataset_split, seed=seed)
                 torch.save(features, filename, pickle_protocol=4)
 
@@ -59,6 +59,7 @@ class FeatureExtractor:
         print("Update the transform of dataset to model's special preprocess.")
         transform = self.model.get_preprocess(split=dataset_split)
         dataset.set_transform(transform)
+        dataset.set_strong_transform(None)
 
         if use_strong:
             transform_weak, transform_strong = make_semi_transforms(transform)

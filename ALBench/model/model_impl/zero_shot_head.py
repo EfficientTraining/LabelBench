@@ -1,11 +1,10 @@
 import torch
 from tqdm import tqdm
-import clip
 
 import ALBench.templates as templates
 
 
-def get_zeroshot_classifier(clip_model, classnames, template):
+def get_zeroshot_classifier(clip_model, tokenizer, classnames, template):
     assert template is not None, 'template is required for zeroshot classifier.'
     assert classnames is not None, 'classnames is required for zeroshot classifier.'
     template = getattr(templates, template)
@@ -21,8 +20,8 @@ def get_zeroshot_classifier(clip_model, classnames, template):
             texts = []
             for t in template:
                 texts.append(t(classname))
-            texts = clip.tokenize(texts).cuda()  # tokenize
-            embeddings = clip_model.encode_text(texts)  # embed with text encoder
+            texts = tokenizer(texts).cuda()  # Tokenize.
+            embeddings = clip_model.encode_text(texts)  # Embed with text encoder.
             embeddings /= embeddings.norm(dim=-1, keepdim=True)
 
             embeddings = embeddings.mean(dim=0, keepdim=True)
