@@ -1,0 +1,9 @@
+{
+  "strategy_name" : "bait",
+  "batch_size": 1,
+  "max_iter": 2,
+  "lamb": 0.1,
+  "fixed_step": true,
+  "fisher_comp_ratio": 100,
+  "grad_comp_ratio": 20
+}
