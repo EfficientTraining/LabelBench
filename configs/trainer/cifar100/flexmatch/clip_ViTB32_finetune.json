@@ -6,7 +6,7 @@
   "optim_name": "AdamW",
   "scheduler_name": "CosineLR",
   "lr": 1e-5,
-  "wd": 1e-5,
+  "wd": 3e-5,
   "warmup_steps": 500,
   "max_epoch": 20,
   "early_stop": true,
