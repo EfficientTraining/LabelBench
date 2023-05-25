@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchvision.ops import MLP
 from ALBench.skeleton.model_skeleton import register_model
 
@@ -16,7 +17,7 @@ class ModifiedShallow(nn.Module):
         self.ret_emb = ret_emb
 
     def forward(self, features, ret_features=False, **kwargs):
-        features = self.shallow_model(features)
+        features = F.relu(self.shallow_model(features))
         if ret_features:
             return self.classifier(features), features.data
         elif self.ret_emb:
