@@ -13,7 +13,7 @@
   "patience": 2,
   "train_batch_size": 50,
   "test_batch_size": 1000,
-  "num_workers": 32,
+  "num_workers": 40,
   "p_cutoff": 0.95,
   "ulb_loss_ratio": 1.0,
   "uratio": 4
