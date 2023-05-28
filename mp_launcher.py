@@ -64,3 +64,6 @@ for strategy in args.strategies:
                         p.wait()
                     processes = []
         counter += 1
+
+for p in processes:
+    p.wait()
