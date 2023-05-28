@@ -16,7 +16,7 @@ def compute_single_hessian(x, p, ret_embed=False):
 
     prob_matrix = np.diag(p) - np.outer(p,p)
 
-    if True:
+    if False:
         if ret_embed:
             return x
         else:
@@ -64,52 +64,69 @@ class BAIT(Strategy):
         preds, embs = trainer.retrieve_inputs(self.input_types)
         probs = scipy.special.softmax(preds, axis=1)
 
+        #PCA
+
+        shifted_embs = embs - np.mean(embs, axis=0)
+        cov = shifted_embs.T @ shifted_embs / shifted_embs.shape[0]
+        v, w = np.linalg.eigh(cov)
+        idx = (v.argsort()[::-1])[:50] # Sort descending and get top
+        embs = embs @ w[:,idx]
+
+
         labeled_set = set(list(self.dataset.labeled_idxs()))
         all_set = set(list(range(len(self.dataset))))
         unlabeled = list(all_set - labeled_set)
 
         self.fisher_total = self.compute_fisher(range(len(self.dataset)) , probs, embs)
         self.fisher_total_sqrt = scipy.linalg.sqrtm( self.fisher_total )
-        self.fisher_total_inv = np.linalg.inv( self.fisher_total )        
-        self.fisher_total_invsqrt = scipy.linalg.sqrtm( self.fisher_total_inv )
+        self.fisher_total_invsqrt = np.linalg.inv( self.fisher_total_sqrt )
 
-        self.proposed_vec = np.zeros((len(self.dataset),))
-        self.proposed_vec[np.random.choice(unlabeled, size=(budget,), replace=False)] = 1
 
-        while True:
-            self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(np.flatnonzero(self.proposed_vec), probs, embs) ) @ self.fisher_total_sqrt
-            self.cur_val = np.trace( self.inv_fisher_proposed_adj )
+        proposed_batch = list(np.random.choice(unlabeled, size=(budget,), replace=False))
 
-            swaps = 0
-            for i in tqdm(range(1000)):
-                swap_remove = np.random.choice(np.flatnonzero(self.proposed_vec))
-                swap_add = np.random.choice(unlabeled)
-                while self.proposed_vec[swap_add] == 1:
-                    swap_add = np.random.choice(unlabeled)
+        self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(proposed_batch, probs, embs) ) @ self.fisher_total_sqrt
+        self.cur_val = np.trace( self.inv_fisher_proposed_adj )
+        print(self.cur_val)
+
+        for _ in range(1):
+            for _ in tqdm(range(budget)):
+                swap_remove = proposed_batch[0]
+                
+                swap_adds = np.random.choice(list(set(unlabeled) - set(proposed_batch)), size=(10,), replace=False)
 
 
                 remove_U = self.fisher_total_invsqrt @ self.compute_single_hessian_fn(embs[swap_remove], probs[swap_remove], ret_embed=True)
-                add_U = self.fisher_total_invsqrt @ self.compute_single_hessian_fn(embs[swap_add], probs[swap_add], ret_embed=True)
+                inter_inv_fisher_adj = woodbury(self.inv_fisher_proposed_adj, remove_U, sign=-1)
+               
+                best_swap_add = swap_remove
+                best_swap_add_val = self.cur_val
+                best_swap_matrix = self.inv_fisher_proposed_adj
+                for swap_add in swap_adds:
+                    add_U = self.fisher_total_invsqrt @ self.compute_single_hessian_fn(embs[swap_add], probs[swap_add], ret_embed=True)
+
+                    swap_inv_fisher_adj = woodbury(inter_inv_fisher_adj, add_U, sign=1)
+
+                    swap_val = np.trace( swap_inv_fisher_adj )
+
+                    if swap_val < best_swap_add_val:
+                        best_swap_add = swap_add
+                        best_swap_add_val = swap_val
+                        best_swap_matrix = swap_inv_fisher_adj
+
+                proposed_batch.append(best_swap_add)
+                del proposed_batch[0]
+
+                self.cur_val = best_swap_add_val
+                self.inv_fisher_proposed_adj = best_swap_matrix
 
             
-                inter_inv_fisher_adj = woodbury(self.inv_fisher_proposed_adj, remove_U, sign=-1)
-                swap_inv_fisher_adj = woodbury(inter_inv_fisher_adj, add_U, sign=1)
 
-                swap_val = np.trace( swap_inv_fisher_adj )
-
-                if swap_val < self.cur_val:
-                    self.proposed_vec[swap_add] = 1
-                    self.proposed_vec[swap_remove] = 0
-
-                    self.inv_fisher_proposed_adj = swap_inv_fisher_adj
-                    self.cur_val = swap_val
-                    
-                    swaps += 1
-
-            print(swaps)
+            print(self.cur_val)
+            self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(proposed_batch, probs, embs) ) @ self.fisher_total_sqrt
+            self.cur_val = np.trace( self.inv_fisher_proposed_adj )
             print(self.cur_val)
         
-        return np.flatnonzero(self.proposed_vec)
+        return proposed_batch
 
 
 
