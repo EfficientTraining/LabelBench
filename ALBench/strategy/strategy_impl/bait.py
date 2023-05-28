@@ -16,7 +16,9 @@ def compute_single_hessian(x, p, ret_embed=False):
 
     prob_matrix = np.diag(p) - np.outer(p,p)
 
-    if False:
+    use_regression_not_classification = False
+
+    if use_regression_not_classification:
         if ret_embed:
             return x
         else:
@@ -45,15 +47,13 @@ class BAIT(Strategy):
     def __init__(self, strategy_config, dataset):
         super(BAIT, self).__init__(strategy_config, dataset)
         self.input_types = {ALInput.TRAIN_PRED, ALInput.TRAIN_EMBEDDING}
-        self.compute_single_hessian_fn = compute_single_hessian
-        self.lamb = strategy_config["lamb"] if "lamb" in strategy_config else 1 # Regularization parameter for the fisher information matrix.
-        self.if_fixed_step = strategy_config["fixed_step"] if "fixed_step" in strategy_config else False
-        self.max_iter = strategy_config["max_iter"] if "max_iter" in strategy_config else 5 # Maximum number of iterations for Frank-Wolfe.
-        self.fisher_comp_ratio = strategy_config["fisher_comp_ratio"] if "fisher_comp_ratio" in strategy_config else 1 # Instead of computing fisher for all samples, we only compute gradient for a random subset of samples to accelerate.
-        self.grad_comp_ratio = strategy_config["grad_comp_ratio"] if "grad_comp_ratio" in strategy_config else 1 # Instead of computing gradient for all samples, we only compute gradient for a random subset of samples to accelerate.
+        
+        self.pca_dim = strategy_config["pca_dimension"] if "pca_dimension" in strategy_config else None
+        self.num_proposed_adds = strategy_config["num_proposed_additions"] if "num_proposed_additions" in strategy_config else 10
+        self.num_complete_swaps = strategy_config["num_complete_swaps"] if "num_complete_swaps" in strategy_config else 1
+
         self.curInv = 0 # Current inverse of the fisher information matrix on the selected samples. 
         self.fisher_unlabeled = None # Fisher information matrix on the unlabeled set.
-        self.batch_size = strategy_config["batch_size"] if "batch_size" in strategy_config else 1 # Batch size for computing the fisher information matrix.
 
         # The whole algorithm is trying to minimize the following optimization problem with fixed selection budget.
         # trace((self.curInv)@ self.fisher_unlabeled)
@@ -66,11 +66,14 @@ class BAIT(Strategy):
 
         #PCA
 
-        shifted_embs = embs - np.mean(embs, axis=0)
-        cov = shifted_embs.T @ shifted_embs / shifted_embs.shape[0]
-        v, w = np.linalg.eigh(cov)
-        idx = (v.argsort()[::-1])[:50] # Sort descending and get top
-        embs = embs @ w[:,idx]
+        embs = embs - np.mean(embs, axis=0)
+        
+        if self.pca_dim is not None:
+            cov = embs.T @ embs / embs.shape[0]
+            v, w = np.linalg.eigh(cov)
+            idx = (v.argsort()[::-1])[:self.pca_dim] # Sort descending and get top
+        
+            embs = embs @ w[:,idx]
 
 
         labeled_set = set(list(self.dataset.labeled_idxs()))
@@ -86,23 +89,23 @@ class BAIT(Strategy):
 
         self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(proposed_batch, probs, embs) ) @ self.fisher_total_sqrt
         self.cur_val = np.trace( self.inv_fisher_proposed_adj )
-        print(self.cur_val)
+        print("Objective Value: {}".format(self.cur_val))
 
-        for _ in range(1):
-            for _ in tqdm(range(budget)):
+        for _ in range(self.num_complete_swaps):
+            for _ in tqdm(range(budget), desc="Swapping"):
                 swap_remove = proposed_batch[0]
                 
-                swap_adds = np.random.choice(list(set(unlabeled) - set(proposed_batch)), size=(10,), replace=False)
+                swap_adds = np.random.choice(list(set(unlabeled) - set(proposed_batch)), size=(self.num_proposed_adds,), replace=False)
 
 
-                remove_U = self.fisher_total_invsqrt @ self.compute_single_hessian_fn(embs[swap_remove], probs[swap_remove], ret_embed=True)
+                remove_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_remove], probs[swap_remove], ret_embed=True)
                 inter_inv_fisher_adj = woodbury(self.inv_fisher_proposed_adj, remove_U, sign=-1)
                
                 best_swap_add = swap_remove
                 best_swap_add_val = self.cur_val
                 best_swap_matrix = self.inv_fisher_proposed_adj
                 for swap_add in swap_adds:
-                    add_U = self.fisher_total_invsqrt @ self.compute_single_hessian_fn(embs[swap_add], probs[swap_add], ret_embed=True)
+                    add_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_add], probs[swap_add], ret_embed=True)
 
                     swap_inv_fisher_adj = woodbury(inter_inv_fisher_adj, add_U, sign=1)
 
@@ -120,11 +123,10 @@ class BAIT(Strategy):
                 self.inv_fisher_proposed_adj = best_swap_matrix
 
             
-
-            print(self.cur_val)
+            print("Objective Value: {}".format(self.cur_val))
             self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(proposed_batch, probs, embs) ) @ self.fisher_total_sqrt
             self.cur_val = np.trace( self.inv_fisher_proposed_adj )
-            print(self.cur_val)
+            print("Objective Value: {}".format(self.cur_val))
         
         return proposed_batch
 
@@ -136,7 +138,7 @@ class BAIT(Strategy):
         total_fisher = 0
         count = 0
         for i in tqdm(range(len(indices)), desc="Computing Fisher Information"):
-            total_fisher = total_fisher + self.compute_single_hessian_fn(embs[i], probs[i])
+            total_fisher = total_fisher + compute_single_hessian(embs[i], probs[i])
 
         return total_fisher
 
