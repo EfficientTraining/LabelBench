@@ -10,11 +10,10 @@ from functorch import vmap
 from ALBench.skeleton.active_learning_skeleton import Strategy, ALInput
 
 
-def compute_single_hessian(x, p, ret_embed=False):   
+def compute_single_hessian(x, p, ret_embed=False):
+    x, p = np.expand_dims(x, 1), np.expand_dims(p, 1)  # x_single.shape = [embed_dim,1], p_single.shape = [n_classes,1]
 
-    x, p = np.expand_dims(x, 1), np.expand_dims(p, 1) # x_single.size() = [embed_dim,1], p_single.size() = [n_classes,1]
-
-    prob_matrix = np.diag(p) - np.outer(p,p)
+    prob_matrix = np.diag(p) - np.outer(p, p)
 
     use_regression_not_classification = False
 
@@ -22,18 +21,19 @@ def compute_single_hessian(x, p, ret_embed=False):
         if ret_embed:
             return x
         else:
-            return np.outer(x,x)
+            return np.outer(x, x)
     else:
         if ret_embed:
-            return np.kron( scipy.linalg.sqrtm(prob_matrix), x)
+            return np.kron(scipy.linalg.sqrtm(prob_matrix), x)
         else:
-            return np.kron( prob_matrix, np.outer(x,x) )
+            return np.kron(prob_matrix, np.outer(x, x))
 
-def woodbury(A_inv,U,sign):
+
+def woodbury(A_inv, U, sign):
     big_dim = A_inv.shape[0]
     small_dim = min(U.shape)
 
-    if U.shape != (big_dim,small_dim):
+    if U.shape != (big_dim, small_dim):
         U = U.T
 
     outside = A_inv @ U
@@ -47,69 +47,67 @@ class BAIT(Strategy):
     def __init__(self, strategy_config, dataset):
         super(BAIT, self).__init__(strategy_config, dataset)
         self.input_types = {ALInput.TRAIN_PRED, ALInput.TRAIN_EMBEDDING}
-        
-        self.pca_dim = strategy_config["pca_dimension"] if "pca_dimension" in strategy_config else None
-        self.num_proposed_adds = strategy_config["num_proposed_additions"] if "num_proposed_additions" in strategy_config else 10
-        self.num_complete_swaps = strategy_config["num_complete_swaps"] if "num_complete_swaps" in strategy_config else 1
 
-        self.curInv = 0 # Current inverse of the fisher information matrix on the selected samples. 
-        self.fisher_unlabeled = None # Fisher information matrix on the unlabeled set.
+        self.pca_dim = strategy_config["pca_dimension"] if "pca_dimension" in strategy_config else None
+        self.num_proposed_adds = \
+            strategy_config["num_proposed_additions"] if "num_proposed_additions" in strategy_config else 10
+        self.num_complete_swaps = \
+            strategy_config["num_complete_swaps"] if "num_complete_swaps" in strategy_config else 1
+
+        self.curInv = 0  # Current inverse of the fisher information matrix on the selected samples.
+        self.fisher_unlabeled = None  # Fisher information matrix on the unlabeled set.
 
         # The whole algorithm is trying to minimize the following optimization problem with fixed selection budget.
         # trace((self.curInv)@ self.fisher_unlabeled)
 
     def select(self, trainer, budget):
-        print(budget)
-
         preds, embs = trainer.retrieve_inputs(self.input_types)
-        probs = scipy.special.softmax(preds, axis=1)
 
-        #PCA
-
+        # PCA
         embs = embs - np.mean(embs, axis=0)
-        
+
         if self.pca_dim is not None:
             cov = embs.T @ embs / embs.shape[0]
             v, w = np.linalg.eigh(cov)
-            idx = (v.argsort()[::-1])[:self.pca_dim] # Sort descending and get top
-        
-            embs = embs @ w[:,idx]
+            idx = (v.argsort()[::-1])[:self.pca_dim]  # Sort descending and get top
 
+            embs = embs @ w[:, idx]
 
         labeled_set = set(list(self.dataset.labeled_idxs()))
         all_set = set(list(range(len(self.dataset))))
         unlabeled = list(all_set - labeled_set)
 
-        self.fisher_total = self.compute_fisher(range(len(self.dataset)) , probs, embs)
-        self.fisher_total_sqrt = scipy.linalg.sqrtm( self.fisher_total )
-        self.fisher_total_invsqrt = np.linalg.inv( self.fisher_total_sqrt )
-
+        self.fisher_total = self.compute_fisher(range(len(self.dataset)), preds, embs)
+        self.fisher_total_sqrt = scipy.linalg.sqrtm(self.fisher_total)
+        self.fisher_total_invsqrt = np.linalg.inv(self.fisher_total_sqrt)
 
         proposed_batch = list(np.random.choice(unlabeled, size=(budget,), replace=False))
 
-        self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(proposed_batch, probs, embs) ) @ self.fisher_total_sqrt
-        self.cur_val = np.trace( self.inv_fisher_proposed_adj )
-        print("Objective Value: {}".format(self.cur_val))
+        self.inv_fisher_proposed_adj = self.fisher_total_sqrt @ np.linalg.inv(
+            self.compute_fisher(proposed_batch, preds, embs)) @ self.fisher_total_sqrt
+        self.cur_val = np.trace(self.inv_fisher_proposed_adj)
 
         for _ in range(self.num_complete_swaps):
             for _ in tqdm(range(budget), desc="Swapping"):
                 swap_remove = proposed_batch[0]
-                
-                swap_adds = np.random.choice(list(set(unlabeled) - set(proposed_batch)), size=(self.num_proposed_adds,), replace=False)
 
+                swap_adds = np.random.choice(list(set(unlabeled) - set(proposed_batch)), size=(self.num_proposed_adds,),
+                                             replace=False)
 
-                remove_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_remove], probs[swap_remove], ret_embed=True)
+                remove_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_remove], preds[swap_remove],
+                                                                              ret_embed=True)
                 inter_inv_fisher_adj = woodbury(self.inv_fisher_proposed_adj, remove_U, sign=-1)
-               
+
                 best_swap_add = swap_remove
                 best_swap_add_val = self.cur_val
                 best_swap_matrix = self.inv_fisher_proposed_adj
                 for swap_add in swap_adds:
-                    add_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_add], probs[swap_add], ret_embed=True)
+                    add_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_add], preds[swap_add],
+                                                                               ret_embed=True)
 
                     swap_inv_fisher_adj = woodbury(inter_inv_fisher_adj, add_U, sign=1)
 
-                    swap_val = np.trace( swap_inv_fisher_adj )
+                    swap_val = np.trace(swap_inv_fisher_adj)
 
                     if swap_val < best_swap_add_val:
                         best_swap_add = swap_add
@@ -122,25 +120,17 @@ class BAIT(Strategy):
                 self.cur_val = best_swap_add_val
                 self.inv_fisher_proposed_adj = best_swap_matrix
 
-            
-            print("Objective Value: {}".format(self.cur_val))
-            self.inv_fisher_proposed_adj  =  self.fisher_total_sqrt @ np.linalg.inv( self.compute_fisher(proposed_batch, probs, embs) ) @ self.fisher_total_sqrt
-            self.cur_val = np.trace( self.inv_fisher_proposed_adj )
-            print("Objective Value: {}".format(self.cur_val))
-        
+            self.inv_fisher_proposed_adj = self.fisher_total_sqrt @ \
+                                           np.linalg.inv(self.compute_fisher(proposed_batch, preds, embs)) @ \
+                                           self.fisher_total_sqrt
+            self.cur_val = np.trace(self.inv_fisher_proposed_adj)
+
         return proposed_batch
 
-
-
-    def compute_fisher(self, indices, probs, embs, num_workers = 4):
+    def compute_fisher(self, indices, probs, embs):
         embs = embs[indices]
         probs = probs[indices]
         total_fisher = 0
-        count = 0
         for i in tqdm(range(len(indices)), desc="Computing Fisher Information"):
             total_fisher = total_fisher + compute_single_hessian(embs[i], probs[i])
-
         return total_fisher
-
-
-
