@@ -1,0 +1,6 @@
+{
+  "strategy_name" : "bait",
+  "pca_dimension": 50,
+  "num_proposed_additions": 10,
+  "num_complete_swaps": 1
+}
