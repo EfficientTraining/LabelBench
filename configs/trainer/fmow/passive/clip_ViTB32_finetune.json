@@ -8,13 +8,13 @@
   "lr": 3e-5,
   "wd": 0.005, 
   "max_epoch": 10,
-  "train_batch_size": 512,
+  "train_batch_size": 400,
   "test_batch_size": 1000,
-  "num_workers": 10,
+  "num_workers": 40,
   "scheduler_name": "customized_CosineLR",
   "warmup_steps": 500,
   "clip_grad": 1.0,
   "early_stop": true,
-  "patience": 5,
+  "patience": 3,
   "mixup": 0.3
 }
