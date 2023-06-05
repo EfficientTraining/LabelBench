@@ -11,7 +11,9 @@ from ALBench.skeleton.active_learning_skeleton import Strategy, ALInput
 
 
 def compute_single_hessian(x, p, ret_embed=False):
-    x, p = np.expand_dims(x, 1), np.expand_dims(p, 1)  # x_single.shape = [embed_dim,1], p_single.shape = [n_classes,1]
+    #x, p = np.expand_dims(x, 1), np.expand_dims(p, 1)  # x_single.shape = [embed_dim,1], p_single.shape = [n_classes,1]
+
+    p = p / np.sum(p)
 
     prob_matrix = np.diag(p) - np.outer(p, p)
 
@@ -19,15 +21,26 @@ def compute_single_hessian(x, p, ret_embed=False):
 
     if use_regression_not_classification:
         if ret_embed:
-            return x
+            return np.expand_dims(x,1)
         else:
             return np.outer(x, x)
     else:
         if ret_embed:
-            return np.kron(scipy.linalg.sqrtm(prob_matrix), x)
+            lamda, V = np.linalg.eigh(prob_matrix)
+            
+            #print(lamda)
+            assert(min(lamda) > -10**-6)
+            lamda = np.maximum(0,lamda)
+
+            sqrt_prob_matrix = V @ np.diag(np.sqrt(lamda)) @ V.T 
+
+            #sqrt_prob_matrix = scipy.linalg.sqrtm(prob_matrix)
+            return np.kron(sqrt_prob_matrix, np.expand_dims(x,1))
         else:
             return np.kron(prob_matrix, np.outer(x, x))
 
+def symmetrize(A): # for numerics
+    return (A + A.T) / 2.0
 
 def woodbury(A_inv, U, sign):
     big_dim = A_inv.shape[0]
@@ -37,8 +50,12 @@ def woodbury(A_inv, U, sign):
         U = U.T
 
     outside = A_inv @ U
-    inside = np.eye(small_dim) + sign * (U.T @ A_inv) @ U
-    return A_inv - sign * outside @ np.linalg.inv(inside) @ outside.T
+    inside = symmetrize( np.eye(small_dim) + sign * (U.T @ A_inv) @ U )
+
+    if min(np.linalg.eigvalsh(inside)) < 10**-6:
+        return None
+    else:
+        return symmetrize( A_inv - sign * outside @ np.linalg.inv(inside) @ outside.T )
 
 
 class BAIT(Strategy):
@@ -73,9 +90,12 @@ class BAIT(Strategy):
 
             embs = embs @ w[:, idx]
 
+        
         labeled_set = set(list(self.dataset.labeled_idxs()))
         all_set = set(list(range(len(self.dataset))))
         unlabeled = list(all_set - labeled_set)
+
+        prev_labeled = list(self.dataset.labeled_idxs())
 
         self.fisher_total = self.compute_fisher(range(len(self.dataset)), preds, embs)
         self.fisher_total_sqrt = scipy.linalg.sqrtm(self.fisher_total)
@@ -84,7 +104,7 @@ class BAIT(Strategy):
         proposed_batch = list(np.random.choice(unlabeled, size=(budget,), replace=False))
 
         self.inv_fisher_proposed_adj = self.fisher_total_sqrt @ np.linalg.inv(
-            self.compute_fisher(proposed_batch, preds, embs)) @ self.fisher_total_sqrt
+            self.compute_fisher(prev_labeled + proposed_batch, preds, embs)) @ self.fisher_total_sqrt
         self.cur_val = np.trace(self.inv_fisher_proposed_adj)
 
         for _ in range(self.num_complete_swaps):
@@ -97,33 +117,39 @@ class BAIT(Strategy):
                 remove_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_remove], preds[swap_remove],
                                                                               ret_embed=True)
                 inter_inv_fisher_adj = woodbury(self.inv_fisher_proposed_adj, remove_U, sign=-1)
-
-                best_swap_add = swap_remove
-                best_swap_add_val = self.cur_val
-                best_swap_matrix = self.inv_fisher_proposed_adj
-                for swap_add in swap_adds:
-                    add_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_add], preds[swap_add],
+                if inter_inv_fisher_adj is not None: # not singular after removal
+                    best_swap_add = swap_remove
+                    best_swap_add_val = self.cur_val
+                    best_swap_matrix = self.inv_fisher_proposed_adj
+                    for swap_add in swap_adds:
+                        add_U = self.fisher_total_invsqrt @ compute_single_hessian(embs[swap_add], preds[swap_add],
                                                                                ret_embed=True)
 
-                    swap_inv_fisher_adj = woodbury(inter_inv_fisher_adj, add_U, sign=1)
+                        swap_inv_fisher_adj = woodbury(inter_inv_fisher_adj, add_U, sign=1)
+                        
+                        swap_val = np.trace(swap_inv_fisher_adj)
 
-                    swap_val = np.trace(swap_inv_fisher_adj)
+                        if swap_val < best_swap_add_val:
+                            best_swap_add = swap_add
+                            best_swap_add_val = swap_val
+                            best_swap_matrix = swap_inv_fisher_adj
 
-                    if swap_val < best_swap_add_val:
-                        best_swap_add = swap_add
-                        best_swap_add_val = swap_val
-                        best_swap_matrix = swap_inv_fisher_adj
+                    proposed_batch.append(best_swap_add)
+                    del proposed_batch[0]
 
-                proposed_batch.append(best_swap_add)
-                del proposed_batch[0]
+                    self.cur_val = best_swap_add_val
+                    self.inv_fisher_proposed_adj = best_swap_matrix
+                
+                else: # singular matrix!
+                    proposed_batch.append(swap_remove)
+                    del proposed_batch[0]
 
-                self.cur_val = best_swap_add_val
-                self.inv_fisher_proposed_adj = best_swap_matrix
-
+            print("Woodbury current value: {}".format(self.cur_val))
             self.inv_fisher_proposed_adj = self.fisher_total_sqrt @ \
-                                           np.linalg.inv(self.compute_fisher(proposed_batch, preds, embs)) @ \
+                                           np.linalg.inv(self.compute_fisher(prev_labeled + proposed_batch, preds, embs)) @ \
                                            self.fisher_total_sqrt
             self.cur_val = np.trace(self.inv_fisher_proposed_adj)
+            print("Recomputed current value: {}".format(self.cur_val))
 
         return proposed_batch
 
