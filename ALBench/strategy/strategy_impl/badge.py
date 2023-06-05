@@ -23,19 +23,19 @@ def init_centers(X1, X2, chosen, mu, D2):
         ind = np.argmax(X1[1] * X2[1])
         mu = [((X1[0][ind], X1[1][ind]), (X2[0][ind], X2[1][ind]))]
         chosen = [ind]
-    if len(mu) == 1:
         D2 = distance(X1, X2, mu[0]).ravel().astype(float)
+        D2[np.array(chosen)] = 0
     else:
         newD = distance(X1, X2, mu[-1]).ravel().astype(float)
         D2 = np.minimum(D2, newD)
-    D2[np.array(chosen)] = 0
-    Ddist = (D2 ** 2) / sum(D2 ** 2)
-    customDist = stats.rv_discrete(name='custm', values=(np.arange(len(Ddist)), Ddist))
-    ind = customDist.rvs(size=1)[0]
-    chosen_set = set(chosen)
-    assert ind not in chosen_set, "%d, %s" % (ind, str(chosen_set))
-    mu.append(((X1[0][ind], X1[1][ind]), (X2[0][ind], X2[1][ind])))
-    chosen.append(ind)
+        D2[np.array(chosen)] = 0
+        Ddist = (D2 ** 2) / sum(D2 ** 2)
+        customDist = stats.rv_discrete(name='custm', values=(np.arange(len(Ddist)), Ddist))
+        ind = customDist.rvs(size=1)[0]
+        chosen_set = set(chosen)
+        assert ind not in chosen_set, "%d, %s" % (ind, str(chosen_set))
+        mu.append(((X1[0][ind], X1[1][ind]), (X2[0][ind], X2[1][ind])))
+        chosen.append(ind)
     return chosen, mu, D2
 
 
@@ -54,9 +54,6 @@ class BADGESampling(Strategy):
         n = len(self.dataset)
         mu = None
         D2 = None
-        idx2i = {}
-        for i, idx in enumerate(unlabeled):
-            idx2i[idx] = i
         embs = embs[unlabeled]
         emb_norms_square = np.sum(embs ** 2, axis=-1)
         max_inds = np.argmax(preds, axis=-1)
@@ -65,7 +62,7 @@ class BADGESampling(Strategy):
         probs[np.arange(n), max_inds] += 1
         probs = probs[unlabeled]
         prob_norms_square = np.sum(probs ** 2, axis=-1)
-        for i in tqdm(range(budget)):
+        for _ in tqdm(range(budget)):
             chosen, mu, D2 = init_centers((probs, prob_norms_square), (embs, emb_norms_square), chosen, mu, D2)
             unlabeled_set.remove(unlabeled[chosen[-1]])
         query_idxs = [unlabeled[i] for i in chosen]

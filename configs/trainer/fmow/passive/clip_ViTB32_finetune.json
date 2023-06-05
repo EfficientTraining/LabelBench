@@ -10,7 +10,7 @@
   "max_epoch": 10,
   "train_batch_size": 400,
   "test_batch_size": 1000,
-  "num_workers": 40,
+  "num_workers": 20,
   "scheduler_name": "customized_CosineLR",
   "warmup_steps": 500,
   "clip_grad": 1.0,

@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-
+import pickle
 import numpy as np
 import torch
 import wandb
@@ -13,21 +13,29 @@ from ALBench.model.model import get_model_fn
 
 def retrieve_run(seed, wandb_name, project_name, dataset_name, embed_model_config, classifier_model_config,
                  strategy_config, trainer_config):
-    api = wandb.Api(timeout=100)
-    runs = api.runs("%s/%s" % (wandb_name, project_name))
-    for run in runs:
-        if run.config["seed"] == seed and run.config["dataset"] == dataset_name and \
-                embed_model_config in run.config["embed_model_config"] and \
-                classifier_model_config in run.config["classifier_model_config"] and \
-                strategy_config in run.config["strategy_config"] and \
-                trainer_config in run.config["trainer_config"]:
-            labeled_idxs = {}
-            for row in run.scan_history(keys=["i", "Label index"]):
-                labeled_idxs[row["i"]] = row["Label index"]
-            idxs = np.zeros(len(labeled_idxs), dtype=int)
-            for i in range(len(labeled_idxs)):
-                idxs[i] = labeled_idxs[i]
-            return idxs
+    path_name = "./results/%s/bs_%d/embed_%s/model_%s/trainer_%s/%s_%d.pkl" % (
+        dataset_name, int(project_name.split("=")[-1]), embed_model_config, classifier_model_config, trainer_config,
+        strategy_config, seed)
+    if os.path.exists(path_name):
+        with open(path_name, "rb") as file:
+            _, idxs = pickle.load(file)
+        return np.array(idxs, dtype=int)
+    else:
+        api = wandb.Api(timeout=100)
+        runs = api.runs("%s/%s" % (wandb_name, project_name))
+        for run in runs:
+            if run.config["seed"] == seed and run.config["dataset"] == dataset_name and \
+                    embed_model_config in run.config["embed_model_config"] and \
+                    classifier_model_config in run.config["classifier_model_config"] and \
+                    strategy_config in run.config["strategy_config"] and \
+                    trainer_config in run.config["trainer_config"]:
+                labeled_idxs = {}
+                for row in run.scan_history(keys=["i", "Label index"]):
+                    labeled_idxs[row["i"]] = row["Label index"]
+                idxs = np.zeros(len(labeled_idxs), dtype=int)
+                for i in range(len(labeled_idxs)):
+                    idxs[i] = labeled_idxs[i]
+                return idxs
 
 
 if __name__ == "__main__":
