@@ -28,6 +28,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
             raise NotImplementedError("Subclass does not specify strong transformation use in use_strong.")
 
         model, params, loss_fn, max_epoch, optimizer, scheduler, early_stopping = self.init_train(finetune_model)
+        mixup_fn = self.trainer_config["mixup_fn"](self.dataset.num_classes)
 
         # Get the training dataset for the non-embedding dataset.
         if "use_embeddings" not in self.trainer_config or (not self.trainer_config["use_embeddings"]):
@@ -96,6 +97,12 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
 
                 img_l, target_l = img_l.float(), target_l.float()
                 img_uw = img_uw.float()
+
+                if mixup_fn is not None:
+                    # Since the target is one-hot and the mixup function accepts class index only, we need to convert it
+                    # to the class index.
+                    target_l = torch.argmax(target_l, dim=1)
+                    img, target_l = mixup_fn(img_l, target_l)
 
                 with torch.cuda.amp.autocast():
                     loss = self.train_step(model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us)
