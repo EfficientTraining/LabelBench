@@ -5,10 +5,10 @@ import pickle
 import numpy as np
 import torch
 import wandb
-from ALBench.trainer.trainer import (get_fns, get_optimizer_fn, get_scheduler_fn, get_trainer)
-from ALBench.dataset.datasets import get_dataset
-from ALBench.metric.metrics import get_metric
-from ALBench.model.model import get_model_fn
+from LabelBench.trainer.trainer import (get_fns, get_optimizer_fn, get_scheduler_fn, get_trainer)
+from LabelBench.dataset.datasets import get_dataset
+from LabelBench.metric.metrics import get_metric
+from LabelBench.model.model import get_model_fn
 
 
 def retrieve_run(seed, wandb_name, project_name, dataset_name, embed_model_config, classifier_model_config,

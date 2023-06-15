@@ -3,8 +3,8 @@
 ## Setup Python Environment
 With conda:
 ```
-conda create -n albench python=3.9
-conda activate albench
+conda create -n labelbench python=3.9
+conda activate labelbench
 pip install -r requirements.txt
 ```
 

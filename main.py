@@ -5,12 +5,12 @@ import os
 import numpy as np
 import torch
 import wandb
-from ALBench.trainer.trainer import (get_fns, get_optimizer_fn, get_scheduler_fn, get_trainer)
-from ALBench.dataset.datasets import get_dataset
-from ALBench.dataset.feature_extractor import FeatureExtractor
-from ALBench.metric.metrics import get_metric
-from ALBench.model.model import get_model_fn
-from ALBench.strategy.strategies import get_strategy
+from LabelBench.trainer.trainer import (get_fns, get_optimizer_fn, get_scheduler_fn, get_trainer)
+from LabelBench.dataset.datasets import get_dataset
+from LabelBench.dataset.feature_extractor import FeatureExtractor
+from LabelBench.metric.metrics import get_metric
+from LabelBench.model.model import get_model_fn
+from LabelBench.strategy.strategies import get_strategy
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
