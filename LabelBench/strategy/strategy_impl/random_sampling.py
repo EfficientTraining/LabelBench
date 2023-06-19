@@ -8,7 +8,7 @@ class RandomSampling(Strategy):
 
     def __init__(self, strategy_config, dataset):
         super(RandomSampling, self).__init__(strategy_config, dataset)
-        self.input_types = set()
+        self.input_types = []
 
     def select(self, trainer, budget):
         unlabeled = self.dataset.unlabeled_idxs()

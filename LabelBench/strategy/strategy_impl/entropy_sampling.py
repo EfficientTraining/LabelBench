@@ -10,7 +10,7 @@ class EntropySampling(Strategy):
 
     def __init__(self, strategy_config, dataset):
         super(EntropySampling, self).__init__(strategy_config, dataset)
-        self.input_types = {ALInput.TRAIN_PRED}
+        self.input_types = [ALInput.TRAIN_PRED]
 
     def select(self, trainer, budget):
         preds = trainer.retrieve_inputs(self.input_types)[0]

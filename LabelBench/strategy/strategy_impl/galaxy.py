@@ -21,7 +21,7 @@ class GALAXYSampling(Strategy):
 
     def __init__(self, strategy_config, dataset):
         super(GALAXYSampling, self).__init__(strategy_config, dataset)
-        self.input_types = {ALInput.TRAIN_PRED, ALInput.TRAIN_LABEL}
+        self.input_types = [ALInput.TRAIN_PRED, ALInput.TRAIN_LABEL]
 
     def select(self, trainer, budget):
         labeled_set = set(list(self.dataset.labeled_idxs()))

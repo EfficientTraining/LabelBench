@@ -5,9 +5,10 @@ from LabelBench.trainer.trainer_impl.pytorch_semi_trainer import PyTorchSemiTrai
 
 class FlexmatchTrainer(PyTorchSemiTrainer):
     trainer_name = "flexmatch"
-    # adapted from https://github.com/microsoft/Semi-supervised-learning/tree/main/semilearn/algorithms/flexmatch
+    # Adapted from https://github.com/microsoft/Semi-supervised-learning/tree/main/semilearn/algorithms/flexmatch.
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
+        """See `LabelBench.skeleton.trainer_skeleton.Trainer` for detailed documentation of the above arguments."""
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, get_feature_fn)
         self.use_strong = True
         self.uhat = None
@@ -15,7 +16,7 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
         self.n_ul = None
         self.unlabeled_idxs = None
 
-    def pretrain(self):
+    def initialize_trainer(self):
         self.unlabeled_idxs = torch.from_numpy(self.dataset.unlabeled_idxs()).long()
         self.uhat = -1 * torch.ones(len(self.dataset), dtype=torch.long)
         self.sigma = torch.zeros(self.dataset.get_num_classes() + 1, dtype=torch.long)

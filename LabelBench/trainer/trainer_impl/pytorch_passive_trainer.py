@@ -13,6 +13,7 @@ class PyTorchPassiveTrainer(Trainer):
     trainer_name = "pytorch_passive"
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, feature_extractor):
+        """See `LabelBench.skeleton.trainer_skeleton.Trainer` for detailed documentation of the above arguments."""
         super().__init__(trainer_config, dataset, model_fn, model_config, metric, feature_extractor)
 
     def init_train(self, finetune_model):
@@ -46,7 +47,7 @@ class PyTorchPassiveTrainer(Trainer):
         else:
             scheduler = None
 
-        # initialize the early_stopping object
+        # Initialize the early_stopping object.
         if "early_stop" in self.trainer_config and self.trainer_config["early_stop"]:
             early_stopping = EarlyStopping(
                 patience=self.trainer_config["patience"] if "patience" in self.trainer_config else 5, verbose=True)
