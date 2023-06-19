@@ -12,6 +12,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
     trainer_name = None
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, feature_extractor):
+        """See `LabelBench.skeleton.trainer_skeleton.Trainer` for detailed documentation of the above arguments."""
         super().__init__(trainer_config, dataset, model_fn,
                          model_config, metric, feature_extractor)
         self.use_strong = None
@@ -20,7 +21,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
         raise NotImplementedError(
             "Subclass does not have implementation of semi-supervised learning training function.")
 
-    def pretrain(self):
+    def initialize_trainer(self):
         pass
 
     def train(self, finetune_model=None, finetune_config=None):
@@ -44,8 +45,8 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                 assert transform_strong is not None, "Strong transform cannot be None"
                 train_dataset.set_strong_transform(transform_strong)
 
-        # Executing pre-training (if implemented).
-        self.pretrain()
+        # Executing initialization before training (if implemented).
+        self.initialize_trainer()
 
         counter = 0
         for epoch in tqdm(range(max_epoch), desc="Training Epoch"):

@@ -37,7 +37,7 @@ class BAIT(Strategy):
 
     def __init__(self, strategy_config, dataset):
         super(BAIT, self).__init__(strategy_config, dataset)
-        self.input_types = {ALInput.TRAIN_PRED, ALInput.TRAIN_EMBEDDING}
+        self.input_types = [ALInput.TRAIN_PRED, ALInput.TRAIN_EMBEDDING]
 
         self.pca_dim = strategy_config["pca_dimension"] if "pca_dimension" in strategy_config else None
         self.num_proposed_adds = \

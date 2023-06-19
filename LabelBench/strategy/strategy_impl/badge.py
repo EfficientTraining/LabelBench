@@ -44,7 +44,7 @@ class BADGESampling(Strategy):
 
     def __init__(self, strategy_config, dataset):
         super(BADGESampling, self).__init__(strategy_config, dataset)
-        self.input_types = {ALInput.TRAIN_PRED, ALInput.TRAIN_EMBEDDING}
+        self.input_types = [ALInput.TRAIN_PRED, ALInput.TRAIN_EMBEDDING]
 
     def select(self, trainer, budget):
         preds, embs = trainer.retrieve_inputs(self.input_types)

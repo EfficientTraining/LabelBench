@@ -12,7 +12,7 @@ class CoresetSampling(Strategy):
 
     def __init__(self, strategy_config, dataset):
         super(CoresetSampling, self).__init__(strategy_config, dataset)
-        self.input_types = {ALInput.TRAIN_EMBEDDING}
+        self.input_types = [ALInput.TRAIN_EMBEDDING]
         self.working_memory_GB = strategy_config["working_memory_GB"]
 
     def furthest_first(self, X, X_set, n):
