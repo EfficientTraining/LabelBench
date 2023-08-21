@@ -1,4 +1,7 @@
 # LabelBench: A Comprehensive Framework for Benchmarking Label-Efficient Learning
+
+[Link to the original paper on arXiv](https://arxiv.org/abs/2306.09910)
+
 Welcome to LabelBench, where we evaluate label-efficient learning performance with a 
 concerted combination of large pretrained models, semi-supervised learning and active
 learning algorithms. We encourage researchers to contribute datasets, pretrained models,
