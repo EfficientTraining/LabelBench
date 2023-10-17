@@ -106,10 +106,9 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                     img, target_l = mixup_fn(img_l, target_l)
 
                 with torch.cuda.amp.autocast():
-                    loss = self.train_step(model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us)
+                    loss = self.train_step(model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us, counter)
 
                 counter = self.scheduler_step(scheduler, counter)
-
                 optimizer.zero_grad()
                 loss.backward()
                 if "clip_grad" in self.trainer_config:
