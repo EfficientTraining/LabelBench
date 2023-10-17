@@ -23,7 +23,7 @@ class FlexmatchTrainer(PyTorchSemiTrainer):
         self.n_ul = len(self.unlabeled_idxs)
         self.sigma[-1] = self.n_ul
 
-    def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us):
+    def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us, iter):
         # TODO: documentation
         # Get logits for labeled and unlabeled data.
         num_label = img_l.shape[0]

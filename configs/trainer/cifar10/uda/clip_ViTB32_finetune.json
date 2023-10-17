@@ -1,0 +1,22 @@
+{
+  "trainer_name": "uda",
+  "use_embeddings": false,
+  "loss_fn": "Cross Entropy",
+  "pred_fn": "Softmax",
+  "optim_name": "AdamW",
+  "scheduler_name": "CosineLR",
+  "lr": 1e-5,
+  "wd": 3e-5,
+  "warmup_steps": 500,
+  "max_epoch": 20,
+  "early_stop": true,
+  "patience": 3,
+  "train_batch_size": 64,
+  "test_batch_size": 1000,
+  "num_workers": 20,
+  "p_cutoff": 0.9,
+  "ulb_warm_up": 2000,
+  "ulb_loss_ratio": 1.0,
+  "uratio": 3,
+  "temperature": 0.4
+}
