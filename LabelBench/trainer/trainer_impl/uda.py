@@ -20,7 +20,6 @@ class UDATrainer(PyTorchSemiTrainer):
         self.unlabeled_idxs = torch.from_numpy(self.dataset.unlabeled_idxs()).long()
 
     def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us, iter):
-        # TODO: documentation
         # Get logits for labeled and unlabeled data.
         num_label = img_l.shape[0]
         num_unlabel = img_uw.shape[0]
@@ -54,7 +53,6 @@ class UDATrainer(PyTorchSemiTrainer):
 
 
         # Compute unsupervised loss
-        # log_probs_us = F.log_softmax(logits_us[select], dim=-1)
         unsup_loss = self.consistency_loss(logits_us[select], pseudo_label.cuda())
 
         # Warmup coefficient
