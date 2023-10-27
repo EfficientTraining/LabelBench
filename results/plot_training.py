@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 from utils import accum_max, moving_avg, none_smooth
+import warnings
+warnings.filterwarnings("ignore")
 
 if __name__ == "__main__":
     matplotlib.rcParams.update({'font.size': 16})
@@ -62,7 +64,12 @@ if __name__ == "__main__":
 
         plt.xlabel("Number of Labels")
         plt.ylabel(metric)
-        ax.legend([strategy.upper() for strategy in args.strategies])
+        
+        legend_list = []
+        for strategy in args.strategies:
+            legend_list.append(strategy.upper())
+            legend_list.append('_Hidden')
+        ax.legend(legend_list)
         plt.ylim(y_lim)
         ax.grid(True, linestyle="--")
         plt.savefig("plots/%s_%d_%s_%s_%s_%s.pdf" % (
