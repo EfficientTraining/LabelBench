@@ -17,7 +17,7 @@ class PyTorchSemiTrainer(PyTorchPassiveTrainer):
                          model_config, metric, feature_extractor)
         self.use_strong = None
 
-    def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us):
+    def train_step(self, model, img_l, target_l, class_weights, loss_fn, idx_u, img_uw, img_us, iter):
         raise NotImplementedError(
             "Subclass does not have implementation of semi-supervised learning training function.")
 
