@@ -41,7 +41,7 @@ def entropy_loss(mask, logits_s, prob_model, label_hist):
 
 class FreematchTrainer(PyTorchSemiTrainer):
     trainer_name = "freematch"
-    # Adapted from https://github.com/microsoft/Semi-supervised-learning/blob/main/semilearn/algorithms/freematch/freematch.py.
+    # Adapted from https://github.com/microsoft/Semi-supervised-learning/blob/main/semilearn/algorithms/freematch.
 
     def __init__(self, trainer_config, dataset, model_fn, model_config, metric, get_feature_fn):
         """See `LabelBench.skeleton.trainer_skeleton.Trainer` for detailed documentation of the above arguments."""
