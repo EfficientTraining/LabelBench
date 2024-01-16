@@ -1,0 +1,19 @@
+{
+  "trainer_name": "pytorch_passive",
+  "use_embeddings": true,
+  "loss_fn": "LabelSmoothingCrossEntropy",
+  "pred_fn": "Softmax",
+  "smoothing": 0.1,
+  "optim_name": "AdamW",
+  "wd": 1e-5,
+  "lr": 1e-3,
+  "max_epoch": 30,
+  "train_batch_size": 500,
+  "test_batch_size": 10000,
+  "num_workers": 40,
+  "scheduler_name": "customized_CosineLR",
+  "warmup_steps": 200,
+  "early_stop": true,
+  "patience": 3,
+  "mixup": 0.2
+}

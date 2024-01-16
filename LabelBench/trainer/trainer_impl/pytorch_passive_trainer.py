@@ -153,6 +153,7 @@ class PyTorchPassiveTrainer(Trainer):
 
     def _test(self, dataset_split, model, **kwargs):
         model.eval()
+        self.dataset.eval()
         if "mc_dropout" in kwargs and kwargs["mc_dropout"]:
             for m in model.modules():
                 if isinstance(m, nn.Dropout):
@@ -197,4 +198,5 @@ class PyTorchPassiveTrainer(Trainer):
             counter += len(pred)
         assert counter == len(preds)
         model.train()
+        self.dataset.train()
         return preds, labels, losses, embs

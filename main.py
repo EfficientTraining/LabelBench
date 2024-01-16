@@ -11,6 +11,7 @@ from LabelBench.dataset.feature_extractor import FeatureExtractor
 from LabelBench.metric.metrics import get_metric
 from LabelBench.model.model import get_model_fn
 from LabelBench.strategy.strategies import get_strategy
+from LabelBench.corrupter.corrupter import get_corrupter_fn
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -27,6 +28,8 @@ if __name__ == "__main__":
     parser.add_argument("--classifier_model_config", type=str, help="Path to model configuration file.")
     parser.add_argument("--strategy_config", type=str, help="Path to AL strategy configuration file.")
     parser.add_argument("--trainer_config", type=str, help="Path to trainer configuration file.")
+    parser.add_argument("--corrupter_config", type=str, help="Path to corrupter configuration file.",
+                        default="noiseless.json")
     args = parser.parse_args()
 
     seed = args.seed
@@ -50,6 +53,8 @@ if __name__ == "__main__":
         strategy_config = json.load(f)
     with open(os.path.join("./configs/trainer", args.trainer_config), "r") as f:
         trainer_config = json.load(f)
+    with open(os.path.join("./configs/corrupter", args.corrupter_config), "r") as f:
+        corrupter_config = json.load(f)
 
     run_name = "%s, embed_model = %s, classifier_model=%s" % (
         strategy_config["strategy_name"], embed_model_config["model_name"], classifier_model_config["model_name"])
@@ -63,6 +68,10 @@ if __name__ == "__main__":
     # Retrieve ALDataset and number of classes.
     dataset = get_dataset(dataset_name, args.data_dir)
     classifier_model_config["num_output"] = dataset.get_num_classes()
+
+    # Get corrupter setting.
+    corrupter = get_corrupter_fn(corrupter_config["name"], corrupter_config)
+    dataset.set_corrupter(corrupter)
 
     # Construct embedding model and feature_extractor to get embedding if needed.
     if embed_model_config["model_name"] != "none":

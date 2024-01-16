@@ -15,6 +15,8 @@ parser.add_argument("--embed_model_config", type=str, help="Path to the encoder 
                     default="none.json")
 parser.add_argument("--classifier_model_config", type=str, help="Path to model configuration file.")
 parser.add_argument("--trainer_config", type=str, help="Path to trainer configuration file.")
+parser.add_argument("--corrupter_config", type=str, help="Path to corrupter configuration file.",
+                    default="noiseless.json")
 parser.add_argument("--strategies", type=str, nargs="+", help="Path to AL strategy configuration files.")
 parser.add_argument("--num_runs", type=int, default=4, help="Number of runs.")
 parser.add_argument("--run_per_device", type=int, default=1, help="Number of runs on each GPU.")
@@ -40,7 +42,8 @@ for strategy in args.strategies:
                    "--embed_model_config", args.embed_model_config,
                    "--classifier_model_config", args.classifier_model_config,
                    "--strategy_config", strategy,
-                   "--trainer_config", args.trainer_config
+                   "--trainer_config", args.trainer_config,
+                   "--corrupter_config", args.corrupter_config
                    ]
         if counter >= args.skip:
             new_env = os.environ.copy()
