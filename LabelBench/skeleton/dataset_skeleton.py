@@ -87,6 +87,8 @@ class TransformDataset(Dataset):
         self.__default_target_transform = target_transform
         self.ignore_metadata = ignore_metadata
         self._return_indices = False
+        self.__noisy_labels = None
+        self.__use_gt = False
 
     def __len__(self):
         return len(self.dataset)
@@ -101,6 +103,8 @@ class TransformDataset(Dataset):
             x = self.__transform(x_orig)
         if self.__target_transform:
             y = self.__target_transform(y)
+        if (not self.__use_gt) and (self.__noisy_labels is not None):
+            y = self.__noisy_labels[item]
         if self.__strong_transform:
             xs = self.__strong_transform(x_orig)
             x = (x, xs)
@@ -109,6 +113,15 @@ class TransformDataset(Dataset):
             return x, y, item
         else:
             return x, y
+
+    def set_noisy_labels(self, noisy_labels):
+        self.__noisy_labels = noisy_labels
+
+    def use_gt(self):
+        self.__use_gt = True
+
+    def use_noisy(self):
+        self.__use_gt = False
 
     def get_transform(self):
         return self.__transform
@@ -141,9 +154,9 @@ class ALDataset:
     def __init__(self, train_dataset, val_dataset, test_dataset, train_labels, val_labels, test_labels, label_type,
                  num_classes, classnames, train_emb_mean=np.mean, train_emb_std=np.std):
         """
-        :param torch.utils.data.Dataset train_dataset: Training dataset that contains both examples and labels.
-        :param torch.utils.data.Dataset val_dataset: Validation dataset that contains both examples and labels.
-        :param torch.utils.data.Dataset test_dataset: Testing dataset that contains both examples and labels.
+        :param TransformDataset train_dataset: Training dataset that contains both examples and labels.
+        :param TransformDataset val_dataset: Validation dataset that contains both examples and labels.
+        :param TransformDataset test_dataset: Testing dataset that contains both examples and labels.
         :param Optional[numpy.ndarray] train_labels: All training labels for easy accessibility.
         :param Optional[numpy.ndarray] val_labels: All validation labels for easy accessibility.
         :param Optional[numpy.ndarray] test_labels: All testing labels for easy accessibility.
@@ -169,9 +182,26 @@ class ALDataset:
         self.__val_labels = val_labels
         self.__test_labels = test_labels
         self.feature_extractor = None
-
-
         self.classnames = classnames
+        self.__corrupter = None
+        self.__use_gt = False
+        self.__noisy_train_labels = None
+
+    def train(self):
+        self.__use_gt = False
+        self.train_dataset.use_noisy()
+
+    def eval(self):
+        self.__use_gt = True
+        self.train_dataset.use_gt()
+
+    def set_corrupter(self, corrupter):
+        self.__corrupter = corrupter
+        if callable(self.__train_labels):
+            self.__train_labels = self.__train_labels()
+        self.__noisy_train_labels = self.__corrupter(self.__train_labels)
+        self.train_dataset.set_noisy_labels(np.array(self.__noisy_train_labels))
+        self.train()
 
     def update_embedding_dataset(self, epoch, feature_extractor, use_strong=False):
         """
@@ -224,14 +254,16 @@ class ALDataset:
                 self.__train_emb_std = self.__train_emb_std(self.train_emb[0], axis=0)
             else:
                 self.__train_emb_std = self.__train_emb_std(self.train_emb, axis=0)
+        train_labels = self.__train_labels if self.__use_gt or (self.__noisy_train_labels is None) else \
+            self.__noisy_train_labels
         if isinstance(self.train_emb, tuple):
             train_dataset = DatasetOnMemory(((self.train_emb[0] - self.__train_emb_mean) / self.__train_emb_std,
                                              (self.train_emb[1] - self.__train_emb_mean) / self.__train_emb_std),
-                                            self.__train_labels,
+                                            train_labels,
                                             self.num_classes)
         else:
             train_dataset = DatasetOnMemory((self.train_emb - self.__train_emb_mean) / self.__train_emb_std,
-                                            self.__train_labels,
+                                            train_labels,
                                             self.num_classes)
         val_dataset = DatasetOnMemory((self.val_emb - self.__train_emb_mean) / self.__train_emb_std,
                                       self.__val_labels,
@@ -284,4 +316,7 @@ class ALDataset:
     def get_train_labels(self):
         if callable(self.__train_labels):
             self.__train_labels = self.__train_labels()
-        return np.array(self.__train_labels)
+        if self.__use_gt or (self.__noisy_train_labels is None):
+            return np.array(self.__train_labels)[self.labeled_idxs()]
+        else:
+            return np.array(self.__noisy_train_labels)[self.labeled_idxs()]

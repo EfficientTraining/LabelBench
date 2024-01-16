@@ -13,6 +13,8 @@ parser.add_argument("--embed_model_config", type=str, help="Path to the encoder 
 parser.add_argument("--classifier_model_config", type=str, help="Path to model configuration file.")
 parser.add_argument("--strategies", type=str, nargs="+", help="Path to AL strategy configuration files.")
 parser.add_argument("--trainer_config", type=str, help="Path to trainer configuration file.")
+parser.add_argument("--corrupter_config", type=str, help="Path to corrupter configuration file.",
+                    default="noiseless.json")
 parser.add_argument("--eval_metric", type=str, help="Metric name for evaluation")
 parser.add_argument("--eval_batch_size", type=int,
                     help="We train neural network after collecting batch_size number of new labels.")
@@ -43,6 +45,7 @@ for strategy in args.strategies:
                    "--classifier_model_config", args.classifier_model_config,
                    "--strategy_config", strategy,
                    "--trainer_config", args.trainer_config,
+                   "--corrupter_config", args.corrupter_config,
                    "--eval_metric", args.eval_metric,
                    "--eval_batch_size", str(args.eval_batch_size),
                    "--eval_num_batch", str(args.eval_num_batch),
