@@ -30,8 +30,8 @@ def retrieve_run(seed, wandb_name, project_name, dataset_name, embed_model_confi
                     classifier_model_config in run.config["classifier_model_config"] and \
                     strategy_config in run.config["strategy_config"] and \
                     trainer_config in run.config["trainer_config"] and \
-                    (("corrupter_config" not in run.config) and ("noiseless" in corrupter_config) or \
-                     (corrupter_config in run.config["corrupter_config"])):
+                    (("corrupter_config" not in run.config) and ("noiseless" in corrupter_config["name"]) or \
+                     ("corrupter_config" in run.config and corrupter_config["name"] in run.config["corrupter_config"])):
                 labeled_idxs = {}
                 for row in run.scan_history(keys=["i", "Label index"]):
                     labeled_idxs[row["i"]] = row["Label index"]
