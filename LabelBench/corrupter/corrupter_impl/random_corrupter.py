@@ -10,11 +10,12 @@ def noiseless_corrupter(corrupter_config, labels):
     labels = np.array(labels)
     label_idxs = np.argmax(labels, axis=-1)
 
-    idxs = np.random.choice(len(label_idxs), size=size, replace=False)
+    rnd = np.random.RandomState(321)
+    idxs = rnd.choice(len(label_idxs), size=size, replace=False)
     for idx in idxs:
         cls = list(range(n_class))
         cls.remove(label_idxs[idx])
         labels[idx, label_idxs[idx]] = 0
-        labels[idx, cls] = 1
+        labels[idx, rnd.choice(cls)] = 1
 
     return labels
