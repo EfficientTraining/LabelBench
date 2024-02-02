@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--embed_model", type=str, help="Substring of the embedding model name.")
     parser.add_argument("--classifier_model", type=str, help="Substring of the classifier model name.")
     parser.add_argument("--trainer_config", type=str, help="Substring of the trainer name.")
+    parser.add_argument("--corrupter_config", type=str, help="Substring of the corrupter name.")
     args = parser.parse_args()
 
     wandb_project = "Active Learning, %s, Batch Size=%d" % (args.dataset, args.batch_size)
@@ -21,7 +22,9 @@ if __name__ == "__main__":
         config = run.config
         if (args.embed_model in run.config["embed_model_config"]) and \
                 (args.classifier_model in run.config["classifier_model_config"]) and \
-                (args.trainer_config in run.config["trainer_config"]):
+                (args.trainer_config in run.config["trainer_config"]) and \
+                ((("corrupter_config" not in run.config) and ("noiseless" in args.corrupter_config)) or
+                 (("corrupter_config" in run.config) and (args.corrupter_config in run.config["corrupter_config"]))):
             run_dict = {}
             label_dict = {}
             print(run.name, config["seed"])
@@ -43,8 +46,13 @@ if __name__ == "__main__":
                     label_lst.append(None)
             print(len(run_dict["Num Labeled"]), len(label_lst))
 
-            path_name = "./%s/bs_%d/embed_%s/model_%s/trainer_%s" % (
-                args.dataset, args.batch_size, args.embed_model, args.classifier_model, args.trainer_config)
+            if "noiseless" in args.corrupter_config:
+                corrupter_str = ""
+            else:
+                corrupter_str = "_%s" % args.corrupter_config
+            path_name = "./%s%s/bs_%d/embed_%s/model_%s/trainer_%s" % (
+                args.dataset, corrupter_str, args.batch_size, args.embed_model, args.classifier_model,
+                args.trainer_config)
             if not os.path.exists(path_name):
                 os.makedirs(path_name)
             with open("%s/%s_%d.pkl" % (path_name, run.config["strategy_config"].split(".")[0], run.config["seed"]),

@@ -17,5 +17,4 @@
     "patience": 3,
     "mixup": 0.1,
     "clip_grad": 1.0
-  }
-  
+}

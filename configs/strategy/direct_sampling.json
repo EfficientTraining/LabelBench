@@ -1,0 +1,5 @@
+{
+  "strategy_name" : "direct",
+  "B1" : 20,
+  "min_budget_per_class" : 60
+}
