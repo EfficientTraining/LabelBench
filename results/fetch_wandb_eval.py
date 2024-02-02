@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--eval_classifier_model", type=str, help="Substring of the evaluation classifier model name.")
     parser.add_argument("--trainer_config", type=str, help="Substring of the trainer name.")
     parser.add_argument("--eval_trainer_config", type=str, help="Substring of the evaluation trainer name.")
+    parser.add_argument("--corrupter_config", type=str, help="Substring of the corrupter name.")
     args = parser.parse_args()
 
     wandb_project = "Point Evaluation, %s" % args.dataset
@@ -23,7 +24,9 @@ if __name__ == "__main__":
                 (args.eval_classifier_model in run.config["eval_classifier_model_config"]) and \
                 (args.trainer_config == run.config["trainer_config"]) and \
                 (args.eval_trainer_config in run.config["eval_trainer_config"]) and \
-                (args.eval_batch_size == run.config["eval_batch_size"]):
+                (args.eval_batch_size == run.config["eval_batch_size"]) and \
+                ((("corrupter_config" not in run.config) and ("noiseless" in args.corrupter_config)) or
+                 (("corrupter_config" in run.config) and (args.corrupter_config in run.config["corrupter_config"]))):
             run_dict = {}
             print(run.name)
             for row in run.scan_history():
@@ -34,8 +37,12 @@ if __name__ == "__main__":
                         else:
                             run_dict[key] = [row[key]]
 
-            path_name = "./%s_eval/bs_%d/proxy_%s/model_%s/trainer_%s_eval_trainer_%s" % (
-                args.dataset, args.eval_batch_size, args.classifier_model, args.eval_classifier_model,
+            if "noiseless" in args.corrupter_config:
+                corrupter_str = ""
+            else:
+                corrupter_str = "_%s" % args.corrupter_config
+            path_name = "./%s%s_eval/bs_%d/proxy_%s/model_%s/trainer_%s_eval_trainer_%s" % (
+                args.dataset, corrupter_str, args.eval_batch_size, args.classifier_model, args.eval_classifier_model,
                 args.trainer_config, args.eval_trainer_config)
             if not os.path.exists(path_name):
                 os.makedirs(path_name)
