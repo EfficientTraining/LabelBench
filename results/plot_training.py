@@ -58,7 +58,7 @@ if __name__ == "__main__":
     num_labeled = alg_dict[args.strategies[0]][0]["Num Labeled"]
 
     if len(args.line_styles) == 0:
-        args.line_styles = ["-"] * len(args.colors)
+        args.line_styles = [1] * len(args.colors)
     for metric in args.metrics:
         y_lim = args.y_lim
         fig, ax = plt.subplots(1)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             ax.plot(num_labeled, perf_mean, linewidth=3, color=color, linestyle="-" * style)
             ax.fill_between(num_labeled, perf_mean - perf_ste, perf_mean + perf_ste, alpha=.3, color=color)
             if y_lim is None and strategy == "random":
-                y_lim = [perfs[0][0] + .05, None]
+                y_lim = [perfs[0][0], None]
 
         plt.xlabel("Number of Labels")
         plt.ylabel(metric)
